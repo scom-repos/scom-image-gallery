@@ -86,18 +86,20 @@ export default class ScomImageGalleryModal extends Module {
     this.imagesSlider.items = [...this._data.images].map((item) => {
       return {
         controls: [
-          <i-panel
-            height="100%"
+          <i-vstack
+            height="100%" width={'100%'}
+            verticalAlignment='center'
+            horizontalAlignment='center'
             overflow="hidden"
           >
             <i-image
               display="block"
-              height="100%" width={'auto'}
+              width={'100%'} height={'auto'}
+              maxHeight={'100vh'}
               url={item.url}
-              objectFit='cover'
               overflow="hidden"
             ></i-image>
-          </i-panel>
+          </i-vstack>
         ],
       };
     }) as any;
@@ -124,14 +126,18 @@ export default class ScomImageGalleryModal extends Module {
 
   private onClose() {
     this.mdGallery.visible = false;
+    this.imagesSlider.activeSlide = 0;
   }
 
   private onExpand() {
   }
 
-  onShowModal(index: number) {
-    this.imagesSlider.activeSlide = index;
+  onShowModal() {
     this.mdGallery.visible = true;
+  }
+
+  onOpenModal() {
+    this.imagesSlider.activeSlide = this.activeSlide;
   }
 
   onCloseModal() {
@@ -146,6 +152,7 @@ export default class ScomImageGalleryModal extends Module {
         width={'100vw'} height={'100vh'}
         padding={{top: 0, right: 0, bottom: 0, left: 0}}
         overflow={'hidden'}
+        onOpen={this.onOpenModal}
       >
         <i-panel width={'100%'} height={'100vh'} class={modalStyle}>
           <i-vstack

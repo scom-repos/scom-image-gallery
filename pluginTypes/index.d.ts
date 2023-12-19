@@ -51,7 +51,8 @@ declare module "@scom/scom-image-gallery/galleryModal.tsx" {
         private updateControls;
         private onClose;
         private onExpand;
-        onShowModal(index: number): void;
+        onShowModal(): void;
+        onOpenModal(): void;
         onCloseModal(): void;
         render(): any;
     }
@@ -75,6 +76,7 @@ declare module "@scom/scom-image-gallery" {
         private _data;
         private mdImages;
         private gridImages;
+        private pnlGallery;
         tag: any;
         constructor(parent?: Container, options?: any);
         init(): void;

@@ -8,9 +8,11 @@ import {
   IUISchema,
   CardLayout,
   Control,
+  VStack,
 } from '@ijstech/components'
 import ScomImageGalleryModal from './galleryModal'
 import { IImage, IImageGallery } from './interface';
+import { gridStyle } from './index.css';
 
 interface ScomImageGalleryElement extends ControlElement {
   lazyLoad?: boolean;
@@ -30,8 +32,9 @@ declare global {
 export default class ScomImageGallery extends Module {
   private _data: IImageGallery
 
-  private mdImages: ScomImageGalleryModal;
+  private mdImages: ScomImageGalleryModal
   private gridImages: CardLayout
+  private pnlGallery: VStack
 
   tag: any = {}
 
@@ -77,7 +80,7 @@ export default class ScomImageGallery extends Module {
     const length = this.images.length;
     this.gridImages.columnsPerRow = length > 1 ? 2 : 1;
     for (let i = 0; i < this.gridImages.columnsPerRow; i++) {
-      const wrapper = <i-vstack gap={2}></i-vstack>;
+      const wrapper = <i-vstack gap={2} position='relative'></i-vstack>;
       this.gridImages.appendChild(wrapper);
     }
     for (let i = 0; i < length; i++) {
@@ -86,22 +89,22 @@ export default class ScomImageGallery extends Module {
       const image = this.images[i];
       if (wrapper) {
         wrapper.appendChild(
-          <i-image
+          <i-panel
+            background={{color: `url(${image.url}) center center / cover no-repeat`}}
             display="block"
             stack={{grow: '1'}}
             width={'100%'} height={'100%'}
-            url={image.url}
             cursor='pointer'
-            objectFit='cover'
             onClick={() => this.onImageSelected(i)}
-          ></i-image>
+          ></i-panel>
         );
       }
     }
   }
 
   private onImageSelected(index: number) {
-    this.mdImages.onShowModal(index);
+    this.mdImages.activeSlide = index;
+    this.mdImages.onShowModal();
   }
 
   getConfigurators() {
@@ -225,21 +228,42 @@ export default class ScomImageGallery extends Module {
 
   private async setTag(value: any) {
     this.tag = value
-    // TODO: update tag
+    const { width } = this.tag
+    if (this.pnlGallery) {
+      this.pnlGallery.width = width
+      this.pnlGallery.height = 'auto'
+    }
   }
 
   render() {
     return (
-      <i-panel>
-        <i-card-layout
-          id="gridImages"
+      <i-vstack
+        id="pnlGallery"
+        border={{radius: 'inherit'}}
+        width={'100%'}
+        minWidth={300}
+        overflow={'hidden'}
+        position='relative'
+      >
+        <i-panel padding={{bottom: '56.25%'}} width="100%"></i-panel>
+        <i-panel
+          position='absolute'
           width={'100%'} height={'100%'}
-          gap={{column: 2, row: 2}}
-        ></i-card-layout>
-        <i-scom-image-gallery--modal
-          id="mdImages"
-        ></i-scom-image-gallery--modal>
-      </i-panel>
+          top="0px" left="0px"
+          overflow={'hidden'}
+        >
+          <i-card-layout
+            id="gridImages"
+            width={'100%'} height={'100%'}
+            border={{radius: 'inherit'}}
+            gap={{column: 2, row: 2}}
+            class={gridStyle}
+          ></i-card-layout>
+          <i-scom-image-gallery--modal
+            id="mdImages"
+          />
+        </i-panel>
+      </i-vstack>
     )
   }
 }
