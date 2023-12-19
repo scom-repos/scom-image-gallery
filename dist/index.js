@@ -74,8 +74,8 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
             this.imagesSlider.items = [...this._data.images].map((item) => {
                 return {
                     controls: [
-                        this.$render("i-panel", { height: "100%", overflow: "hidden" },
-                            this.$render("i-image", { display: "block", height: "100%", width: 'auto', url: item.url, objectFit: 'cover', overflow: "hidden" }))
+                        this.$render("i-vstack", { height: "100%", width: '100%', verticalAlignment: 'center', horizontalAlignment: 'center', overflow: "hidden" },
+                            this.$render("i-image", { display: "block", width: '100%', height: 'auto', maxHeight: '100vh', url: item.url, overflow: "hidden" }))
                     ],
                 };
             });
@@ -100,18 +100,21 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
         }
         onClose() {
             this.mdGallery.visible = false;
+            this.imagesSlider.activeSlide = 0;
         }
         onExpand() {
         }
-        onShowModal(index) {
-            this.imagesSlider.activeSlide = index;
+        onShowModal() {
             this.mdGallery.visible = true;
+        }
+        onOpenModal() {
+            this.imagesSlider.activeSlide = this.activeSlide;
         }
         onCloseModal() {
             this.mdGallery.visible = false;
         }
         render() {
-            return (this.$render("i-modal", { id: "mdGallery", showBackdrop: true, width: '100vw', height: '100vh', padding: { top: 0, right: 0, bottom: 0, left: 0 }, overflow: 'hidden' },
+            return (this.$render("i-modal", { id: "mdGallery", showBackdrop: true, width: '100vw', height: '100vh', padding: { top: 0, right: 0, bottom: 0, left: 0 }, overflow: 'hidden', onOpen: this.onOpenModal },
                 this.$render("i-panel", { width: '100%', height: '100vh', class: index_css_1.modalStyle },
                     this.$render("i-vstack", { verticalAlignment: 'space-between', horizontalAlignment: 'start', height: '50%', padding: { top: '0.75rem', right: '0.75rem', bottom: '0.75rem', left: '0.75rem' }, position: 'absolute', left: "0px", top: "0px" },
                         this.$render("i-icon", { border: { radius: '50%' }, padding: { top: '0.5rem', right: '0.5rem', bottom: '0.5rem', left: '0.5rem' }, name: 'times', fill: Theme.text.primary, width: '2.25rem', height: '2.25rem', background: { color: Theme.background.modal }, cursor: 'pointer', class: "hovered-icon", onClick: this.onClose }),
@@ -128,7 +131,7 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
     ], ScomImageGalleryModal);
     exports.default = ScomImageGalleryModal;
 });
-define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components"], function (require, exports, components_3) {
+define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components", "@scom/scom-image-gallery/index.css.ts"], function (require, exports, components_3, index_css_2) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     let ScomImageGallery = class ScomImageGallery extends components_3.Module {
@@ -170,7 +173,7 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components"]
             const length = this.images.length;
             this.gridImages.columnsPerRow = length > 1 ? 2 : 1;
             for (let i = 0; i < this.gridImages.columnsPerRow; i++) {
-                const wrapper = this.$render("i-vstack", { gap: 2 });
+                const wrapper = this.$render("i-vstack", { gap: 2, position: 'relative' });
                 this.gridImages.appendChild(wrapper);
             }
             for (let i = 0; i < length; i++) {
@@ -178,12 +181,13 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components"]
                 const wrapper = this.gridImages.children[wrapperIndex];
                 const image = this.images[i];
                 if (wrapper) {
-                    wrapper.appendChild(this.$render("i-image", { display: "block", stack: { grow: '1' }, width: '100%', height: '100%', url: image.url, cursor: 'pointer', objectFit: 'cover', onClick: () => this.onImageSelected(i) }));
+                    wrapper.appendChild(this.$render("i-panel", { background: { color: `url(${image.url}) center center / cover no-repeat` }, display: "block", stack: { grow: '1' }, width: '100%', height: '100%', cursor: 'pointer', onClick: () => this.onImageSelected(i) }));
                 }
             }
         }
         onImageSelected(index) {
-            this.mdImages.onShowModal(index);
+            this.mdImages.activeSlide = index;
+            this.mdImages.onShowModal();
         }
         getConfigurators() {
             return [
@@ -302,12 +306,18 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components"]
         }
         async setTag(value) {
             this.tag = value;
-            // TODO: update tag
+            const { width } = this.tag;
+            if (this.pnlGallery) {
+                this.pnlGallery.width = width;
+                this.pnlGallery.height = 'auto';
+            }
         }
         render() {
-            return (this.$render("i-panel", null,
-                this.$render("i-card-layout", { id: "gridImages", width: '100%', height: '100%', gap: { column: 2, row: 2 } }),
-                this.$render("i-scom-image-gallery--modal", { id: "mdImages" })));
+            return (this.$render("i-vstack", { id: "pnlGallery", border: { radius: 'inherit' }, width: '100%', minWidth: 300, overflow: 'hidden', position: 'relative' },
+                this.$render("i-panel", { padding: { bottom: '56.25%' }, width: "100%" }),
+                this.$render("i-panel", { position: 'absolute', width: '100%', height: '100%', top: "0px", left: "0px", overflow: 'hidden' },
+                    this.$render("i-card-layout", { id: "gridImages", width: '100%', height: '100%', border: { radius: 'inherit' }, gap: { column: 2, row: 2 }, class: index_css_2.gridStyle }),
+                    this.$render("i-scom-image-gallery--modal", { id: "mdImages" }))));
         }
     };
     ScomImageGallery = __decorate([
