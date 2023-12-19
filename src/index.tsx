@@ -228,10 +228,13 @@ export default class ScomImageGallery extends Module {
 
   private async setTag(value: any) {
     this.tag = value
-    const { width } = this.tag
+    const { width, border } = this.tag
     if (this.pnlGallery) {
       this.pnlGallery.width = width
       this.pnlGallery.height = 'auto'
+      if (border) {
+        this.pnlGallery.border = border;
+      }
     }
   }
 

@@ -154,7 +154,7 @@ export default class ScomImageGalleryModal extends Module {
         overflow={'hidden'}
         onOpen={this.onOpenModal}
       >
-        <i-panel width={'100%'} height={'100vh'} class={modalStyle}>
+        <i-panel width={'100vw'} height={'100vh'} class={modalStyle}>
           <i-vstack
             verticalAlignment='space-between'
             horizontalAlignment='start'

@@ -115,7 +115,7 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
         }
         render() {
             return (this.$render("i-modal", { id: "mdGallery", showBackdrop: true, width: '100vw', height: '100vh', padding: { top: 0, right: 0, bottom: 0, left: 0 }, overflow: 'hidden', onOpen: this.onOpenModal },
-                this.$render("i-panel", { width: '100%', height: '100vh', class: index_css_1.modalStyle },
+                this.$render("i-panel", { width: '100vw', height: '100vh', class: index_css_1.modalStyle },
                     this.$render("i-vstack", { verticalAlignment: 'space-between', horizontalAlignment: 'start', height: '50%', padding: { top: '0.75rem', right: '0.75rem', bottom: '0.75rem', left: '0.75rem' }, position: 'absolute', left: "0px", top: "0px" },
                         this.$render("i-icon", { border: { radius: '50%' }, padding: { top: '0.5rem', right: '0.5rem', bottom: '0.5rem', left: '0.5rem' }, name: 'times', fill: Theme.text.primary, width: '2.25rem', height: '2.25rem', background: { color: Theme.background.modal }, cursor: 'pointer', class: "hovered-icon", onClick: this.onClose }),
                         this.$render("i-icon", { id: "btnPrev", border: { radius: '50%' }, padding: { top: '0.5rem', right: '0.5rem', bottom: '0.5rem', left: '0.5rem' }, name: 'arrow-left', fill: Theme.text.primary, width: '2.25rem', height: '2.25rem', background: { color: Theme.background.modal }, cursor: 'pointer', class: "hovered-icon", onClick: this.onPrev })),
@@ -306,10 +306,13 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
         }
         async setTag(value) {
             this.tag = value;
-            const { width } = this.tag;
+            const { width, border } = this.tag;
             if (this.pnlGallery) {
                 this.pnlGallery.width = width;
                 this.pnlGallery.height = 'auto';
+                if (border) {
+                    this.pnlGallery.border = border;
+                }
             }
         }
         render() {
