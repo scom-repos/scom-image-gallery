@@ -127,6 +127,7 @@ export default class ScomImageGalleryModal extends Module {
   private onClose() {
     this.mdGallery.visible = false;
     this.imagesSlider.activeSlide = 0;
+    this.updateControls();
   }
 
   private onExpand() {
@@ -138,6 +139,7 @@ export default class ScomImageGalleryModal extends Module {
 
   onOpenModal() {
     this.imagesSlider.activeSlide = this.activeSlide;
+    this.updateControls();
   }
 
   onCloseModal() {
@@ -159,9 +161,9 @@ export default class ScomImageGalleryModal extends Module {
             verticalAlignment='space-between'
             horizontalAlignment='start'
             height={'50%'}
-            padding={{top: '0.75rem', right: '0.75rem', bottom: '0.75rem', left: '0.75rem'}}
+            padding={{right: '0.75rem', left: '0.75rem'}}
             position={'absolute'}
-            left="0px" top="0px"
+            left="0px" top="0px" zIndex={100}
           >
             <i-icon
               border={{radius: '50%'}}
@@ -171,6 +173,7 @@ export default class ScomImageGalleryModal extends Module {
               width='2.25rem' height='2.25rem'
               background={{color: Theme.background.modal}}
               cursor='pointer'
+              margin={{top: '0.75rem'}}
               class="hovered-icon"
               onClick={this.onClose}
             ></i-icon>
@@ -189,19 +192,27 @@ export default class ScomImageGalleryModal extends Module {
           </i-vstack>
           <i-carousel-slider
             id='imagesSlider'
-            maxWidth={'80%'}
+            maxWidth={'75%'}
+            width={'100%'}
             height='100%'
             margin={{left: 'auto', right: 'auto'}}
             indicators={false}
             autoplay={false}
+            swipe={true}
+            mediaQueries={[
+              {
+                maxWidth: '768px',
+                properties: { maxWidth: '100%' },
+              }
+            ]}
           ></i-carousel-slider>
           <i-vstack
             verticalAlignment='space-between'
             horizontalAlignment='end'
             height={'50%'}
-            padding={{top: '0.75rem', right: '0.75rem', bottom: '0.75rem', left: '0.75rem'}}
+            padding={{right: '0.75rem', left: '0.75rem'}}
             position={'absolute'}
-            right="0px" top="0px"
+            right="0px" top="0px" zIndex={100}
           >
             <i-icon
               opacity={0}
@@ -213,6 +224,7 @@ export default class ScomImageGalleryModal extends Module {
               background={{color: Theme.background.modal}}
               cursor='pointer'
               class="hovered-icon"
+              margin={{top: '0.75rem'}}
               onClick={this.onExpand}
             ></i-icon>
             <i-icon
