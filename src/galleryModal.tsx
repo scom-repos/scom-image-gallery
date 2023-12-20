@@ -187,6 +187,12 @@ export default class ScomImageGalleryModal extends Module {
               background={{color: Theme.background.modal}}
               cursor='pointer'
               class="hovered-icon"
+              mediaQueries={[
+                {
+                  maxWidth: '768px',
+                  properties: { visible: false },
+                }
+              ]}
               onClick={this.onPrev}
             ></i-icon>
           </i-vstack>
@@ -202,7 +208,7 @@ export default class ScomImageGalleryModal extends Module {
             mediaQueries={[
               {
                 maxWidth: '768px',
-                properties: { maxWidth: '100%' },
+                properties: { maxWidth: '100%', indicators: true },
               }
             ]}
           ></i-carousel-slider>
@@ -237,6 +243,12 @@ export default class ScomImageGalleryModal extends Module {
               background={{color: Theme.background.modal}}
               cursor='pointer'
               class="hovered-icon"
+              mediaQueries={[
+                {
+                  maxWidth: '768px',
+                  properties: { visible: false },
+                }
+              ]}
               onClick={this.onNext}
             ></i-icon>
           </i-vstack>
