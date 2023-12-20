@@ -101,6 +101,7 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
         onClose() {
             this.mdGallery.visible = false;
             this.imagesSlider.activeSlide = 0;
+            this.updateControls();
         }
         onExpand() {
         }
@@ -109,6 +110,7 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
         }
         onOpenModal() {
             this.imagesSlider.activeSlide = this.activeSlide;
+            this.updateControls();
         }
         onCloseModal() {
             this.mdGallery.visible = false;
@@ -116,12 +118,17 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
         render() {
             return (this.$render("i-modal", { id: "mdGallery", showBackdrop: true, width: '100vw', height: '100vh', padding: { top: 0, right: 0, bottom: 0, left: 0 }, overflow: 'hidden', onOpen: this.onOpenModal },
                 this.$render("i-panel", { width: '100vw', height: '100vh', class: index_css_1.modalStyle },
-                    this.$render("i-vstack", { verticalAlignment: 'space-between', horizontalAlignment: 'start', height: '50%', padding: { top: '0.75rem', right: '0.75rem', bottom: '0.75rem', left: '0.75rem' }, position: 'absolute', left: "0px", top: "0px" },
-                        this.$render("i-icon", { border: { radius: '50%' }, padding: { top: '0.5rem', right: '0.5rem', bottom: '0.5rem', left: '0.5rem' }, name: 'times', fill: Theme.text.primary, width: '2.25rem', height: '2.25rem', background: { color: Theme.background.modal }, cursor: 'pointer', class: "hovered-icon", onClick: this.onClose }),
+                    this.$render("i-vstack", { verticalAlignment: 'space-between', horizontalAlignment: 'start', height: '50%', padding: { right: '0.75rem', left: '0.75rem' }, position: 'absolute', left: "0px", top: "0px", zIndex: 100 },
+                        this.$render("i-icon", { border: { radius: '50%' }, padding: { top: '0.5rem', right: '0.5rem', bottom: '0.5rem', left: '0.5rem' }, name: 'times', fill: Theme.text.primary, width: '2.25rem', height: '2.25rem', background: { color: Theme.background.modal }, cursor: 'pointer', margin: { top: '0.75rem' }, class: "hovered-icon", onClick: this.onClose }),
                         this.$render("i-icon", { id: "btnPrev", border: { radius: '50%' }, padding: { top: '0.5rem', right: '0.5rem', bottom: '0.5rem', left: '0.5rem' }, name: 'arrow-left', fill: Theme.text.primary, width: '2.25rem', height: '2.25rem', background: { color: Theme.background.modal }, cursor: 'pointer', class: "hovered-icon", onClick: this.onPrev })),
-                    this.$render("i-carousel-slider", { id: 'imagesSlider', maxWidth: '80%', height: '100%', margin: { left: 'auto', right: 'auto' }, indicators: false, autoplay: false }),
-                    this.$render("i-vstack", { verticalAlignment: 'space-between', horizontalAlignment: 'end', height: '50%', padding: { top: '0.75rem', right: '0.75rem', bottom: '0.75rem', left: '0.75rem' }, position: 'absolute', right: "0px", top: "0px" },
-                        this.$render("i-icon", { opacity: 0, border: { radius: '50%' }, padding: { top: '0.5rem', right: '0.5rem', bottom: '0.5rem', left: '0.5rem' }, name: "angle-double-right", fill: Theme.text.primary, width: '2.25rem', height: '2.25rem', background: { color: Theme.background.modal }, cursor: 'pointer', class: "hovered-icon", onClick: this.onExpand }),
+                    this.$render("i-carousel-slider", { id: 'imagesSlider', maxWidth: '75%', width: '100%', height: '100%', margin: { left: 'auto', right: 'auto' }, indicators: false, autoplay: false, swipe: true, mediaQueries: [
+                            {
+                                maxWidth: '768px',
+                                properties: { maxWidth: '100%' },
+                            }
+                        ] }),
+                    this.$render("i-vstack", { verticalAlignment: 'space-between', horizontalAlignment: 'end', height: '50%', padding: { right: '0.75rem', left: '0.75rem' }, position: 'absolute', right: "0px", top: "0px", zIndex: 100 },
+                        this.$render("i-icon", { opacity: 0, border: { radius: '50%' }, padding: { top: '0.5rem', right: '0.5rem', bottom: '0.5rem', left: '0.5rem' }, name: "angle-double-right", fill: Theme.text.primary, width: '2.25rem', height: '2.25rem', background: { color: Theme.background.modal }, cursor: 'pointer', class: "hovered-icon", margin: { top: '0.75rem' }, onClick: this.onExpand }),
                         this.$render("i-icon", { id: "btnNext", border: { radius: '50%' }, padding: { top: '0.5rem', right: '0.5rem', bottom: '0.5rem', left: '0.5rem' }, name: 'arrow-right', fill: Theme.text.primary, width: '2.25rem', height: '2.25rem', background: { color: Theme.background.modal }, cursor: 'pointer', class: "hovered-icon", onClick: this.onNext })))));
         }
     };
