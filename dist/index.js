@@ -333,7 +333,7 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
             }
         }
         render() {
-            return (this.$render("i-vstack", { id: "pnlGallery", border: { radius: 'inherit' }, width: '100%', minWidth: 300, overflow: 'hidden', position: 'relative' },
+            return (this.$render("i-vstack", { id: "pnlGallery", border: { radius: 'inherit' }, width: '100%', overflow: 'hidden', position: 'relative' },
                 this.$render("i-panel", { padding: { bottom: '56.25%' }, width: "100%" }),
                 this.$render("i-panel", { position: 'absolute', width: '100%', height: '100%', top: "0px", left: "0px", overflow: 'hidden' },
                     this.$render("i-card-layout", { id: "gridImages", width: '100%', height: '100%', border: { radius: 'inherit' }, gap: { column: 2, row: 2 }, class: index_css_2.gridStyle }),

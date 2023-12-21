@@ -244,7 +244,6 @@ export default class ScomImageGallery extends Module {
         id="pnlGallery"
         border={{radius: 'inherit'}}
         width={'100%'}
-        minWidth={300}
         overflow={'hidden'}
         position='relative'
       >
