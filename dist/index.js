@@ -36,6 +36,12 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
     let ScomImageGalleryModal = class ScomImageGalleryModal extends components_2.Module {
         constructor(parent, options) {
             super(parent, options);
+            this.zoom = 1;
+            this.lastTap = 0;
+            this.inAnimation = false;
+            this.isMousedown = false;
+            this.initialOffset = { x: 0, y: 0 };
+            this.offset = { x: 0, y: 0 };
             this.onNext = this.onNext.bind(this);
             this.onPrev = this.onPrev.bind(this);
         }
@@ -74,14 +80,27 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
             this.imagesSlider.items = [...this._data.images].map((item) => {
                 return {
                     controls: [
-                        this.$render("i-vstack", { height: "100%", width: '100%', verticalAlignment: 'center', horizontalAlignment: 'center', overflow: "hidden" },
-                            this.$render("i-image", { display: "block", width: '100%', height: 'auto', maxHeight: '100vh', url: item.url, overflow: "hidden" }))
+                        this.$render("i-vstack", { height: '100%', width: '100%', verticalAlignment: 'center', horizontalAlignment: 'center', overflow: 'hidden' },
+                            this.$render("i-image", { display: 'block', width: '100%', height: 'auto', maxHeight: '100vh', url: item.url })),
                     ],
                 };
             });
             this.imagesSlider.activeSlide = this.activeSlide;
             this.updateControls();
+            // this.imagesSlider.addEventListener('mousewheel', (e: WheelEvent) => this.handleMouseWheel(e));
         }
+        // private handleMouseWheel(event: WheelEvent) {
+        //   event.preventDefault()
+        //   const target = event.target as HTMLElement
+        //   this.currentEl = target.closest('i-image') as Image
+        //   this.container = this.currentEl?.parentElement as Control
+        //   this.isMousedown = false;
+        //   this.zoom += (-event.deltaY / 4);
+        //   if (this.zoom < 0.5) { this.zoom = 0.5; }
+        //   if (this.zoom > 3) { this.zoom = 3; }
+        //   this.offset = { x: 0, y: 0 };
+        //   if (this.currentEl) this.updateImage();
+        // }
         onNext() {
             if (!this._data.images)
                 return;
@@ -95,15 +114,14 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
             this.updateControls();
         }
         updateControls() {
-            this.btnNext.visible = this.imagesSlider.activeSlide < this._data.images.length - 1;
+            this.btnNext.visible =
+                this.imagesSlider.activeSlide < this._data.images.length - 1;
             this.btnPrev.visible = this.imagesSlider.activeSlide > 0;
         }
         onClose() {
             this.mdGallery.visible = false;
             this.imagesSlider.activeSlide = 0;
             this.updateControls();
-        }
-        onExpand() {
         }
         onShowModal() {
             this.mdGallery.visible = true;
@@ -115,30 +133,208 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
         onCloseModal() {
             this.mdGallery.visible = false;
         }
+        _handleMouseDown(event, stopPropagation) {
+            this.isMousedown = true;
+            if (event instanceof TouchEvent) {
+                const target = event.target;
+                this.currentEl = target.closest('i-image');
+                if (!this.currentEl)
+                    return false;
+                this.initialOffset = {
+                    x: event.touches[0].clientX,
+                    y: event.touches[0].clientY
+                };
+                this.detectDoubleTap(event);
+            }
+            return true;
+        }
+        _handleMouseMove(event, stopPropagation) {
+            if (!this.isMousedown)
+                return;
+            if (event instanceof TouchEvent && this.currentEl && this.zoom > 1) {
+                const deltaX = (this.initialOffset.x - event.touches[0].clientX);
+                const deltaY = (this.initialOffset.y - event.touches[0].clientY);
+                this.addOffset({ x: deltaX, y: deltaY });
+                this.initialOffset = {
+                    x: event.touches[0].clientX,
+                    y: event.touches[0].clientY
+                };
+                this.updateImage();
+                return;
+            }
+            return true;
+        }
+        _handleMouseUp(event, stopPropagation) {
+            this.isMousedown = false;
+            if (this.zoom > 1)
+                return;
+            return true;
+        }
+        detectDoubleTap(event) {
+            const curTime = new Date().getTime();
+            const tapLen = curTime - this.lastTap;
+            if (tapLen < 500 && tapLen > 0) {
+                this.handleDoubleTap(event);
+                event.preventDefault();
+            }
+            this.lastTap = curTime;
+        }
+        scale(scale, center) {
+            this.zoom *= scale;
+            this.zoom = Math.max(0.5, Math.min(3.0, this.zoom));
+            this.offset = { x: 0, y: 0 };
+        }
+        animateFn(duration, framefn) {
+            const startTime = new Date().getTime();
+            const renderFrame = function () {
+                if (!this.inAnimation) {
+                    return;
+                }
+                const frameTime = new Date().getTime() - startTime;
+                let progress = frameTime / duration;
+                if (frameTime >= duration) {
+                    framefn(1);
+                    this.inAnimation = false;
+                    this.updateImage();
+                }
+                else {
+                    progress = -Math.cos(progress * Math.PI) / 2 + 0.5;
+                    framefn(progress);
+                    this.updateImage();
+                    requestAnimationFrame(renderFrame);
+                }
+            }.bind(this);
+            this.inAnimation = true;
+            requestAnimationFrame(renderFrame);
+        }
+        addOffset(offset) {
+            this.offset = {
+                x: this.offset.x + offset.x,
+                y: this.offset.y + offset.y
+            };
+        }
+        handleDoubleTap(event) {
+            let center = {
+                x: event.touches[0].clientX,
+                y: event.touches[0].clientY
+            };
+            const zoomFactor = this.zoom > 1 ? 1 : 2;
+            const startZoomFactor = this.zoom;
+            if (startZoomFactor > zoomFactor) {
+                center = this.getCurrentZoomCenter();
+            }
+            const self = this;
+            const updateProgress = function (progress) {
+                const newZoom = startZoomFactor + progress * (zoomFactor - startZoomFactor);
+                self.scale(newZoom / self.zoom, center);
+            };
+            this.animateFn(300, updateProgress);
+        }
+        getCurrentZoomCenter() {
+            const offsetLeft = this.offset.x - this.initialOffset.x;
+            const centerX = -1 * this.offset.x - offsetLeft / (1 / this.zoom - 1);
+            const offsetTop = this.offset.y - this.initialOffset.y;
+            const centerY = -1 * this.offset.y - offsetTop / (1 / this.zoom - 1);
+            return {
+                x: centerX,
+                y: centerY,
+            };
+        }
+        updateImage() {
+            this.boundPan();
+            const offsetX = -this.offset.x / this.zoom;
+            const offsetY = -this.offset.y / this.zoom;
+            const translate3d = 'translate3d(' + offsetX + 'px,' + offsetY + 'px, 0px)';
+            const scale3d = 'scale3d(' + this.zoom + ', ' + this.zoom + ', 1)';
+            if (this.currentEl) {
+                this.currentEl.style.webkitTransform = translate3d;
+                this.currentEl.style.transform = translate3d;
+                const img = this.currentEl.querySelector('img');
+                if (img)
+                    img.style.transform = scale3d;
+            }
+        }
+        boundPan() {
+            const padding = 50 * this.zoom;
+            const imageWidth = this.currentEl.offsetWidth * this.zoom;
+            const imageHeight = this.currentEl.offsetHeight * this.zoom;
+            if ((this.offset.x - padding) < -imageWidth) {
+                this.offset.x = -imageWidth + padding;
+            }
+            if ((this.offset.x + padding) > imageWidth) {
+                this.offset.x = imageWidth - padding;
+            }
+            if ((this.offset.y - padding) < -imageHeight) {
+                this.offset.y = -imageHeight + padding;
+            }
+            if ((this.offset.y + padding) > imageHeight) {
+                this.offset.y = imageHeight - padding;
+            }
+        }
+        onSwipeEnd(isSwiping) {
+            if (isSwiping && this.currentEl) {
+                this.zoom = 1;
+                this.initialOffset = { x: 0, y: 0 };
+                this.offset = { x: 0, y: 0 };
+                this.currentEl.style.transform = 'translate3d(' + 0 + 'px,' + 0 + 'px, 0px)';
+                const img = this.currentEl.querySelector('img');
+                if (img) {
+                    img.style.transform = 'scale3d(' + this.zoom + ', ' + this.zoom + ', 1) ';
+                }
+                this.currentEl = null;
+            }
+            this.updateControls();
+        }
+        disconnectedCallback() {
+            super.disconnectedCallback();
+            // this.imagesSlider.removeEventListener('mousewheel', (e: WheelEvent) =>
+            //   this.handleMouseWheel(e)
+            // )
+        }
         render() {
-            return (this.$render("i-modal", { id: "mdGallery", showBackdrop: true, width: '100vw', height: '100vh', padding: { top: 0, right: 0, bottom: 0, left: 0 }, overflow: 'hidden', onOpen: this.onOpenModal },
+            return (this.$render("i-modal", { id: 'mdGallery', showBackdrop: true, width: '100vw', height: '100vh', padding: { top: 0, right: 0, bottom: 0, left: 0 }, overflow: 'hidden', onOpen: this.onOpenModal },
                 this.$render("i-panel", { width: '100vw', height: '100vh', class: index_css_1.modalStyle },
-                    this.$render("i-vstack", { verticalAlignment: 'space-between', horizontalAlignment: 'start', height: '50%', padding: { right: '0.75rem', left: '0.75rem' }, position: 'absolute', left: "0px", top: "0px", zIndex: 100 },
-                        this.$render("i-icon", { border: { radius: '50%' }, padding: { top: '0.5rem', right: '0.5rem', bottom: '0.5rem', left: '0.5rem' }, name: 'times', fill: Theme.text.primary, width: '2.25rem', height: '2.25rem', background: { color: Theme.background.modal }, cursor: 'pointer', margin: { top: '0.75rem' }, class: "hovered-icon", onClick: this.onClose }),
-                        this.$render("i-icon", { id: "btnPrev", border: { radius: '50%' }, padding: { top: '0.5rem', right: '0.5rem', bottom: '0.5rem', left: '0.5rem' }, name: 'arrow-left', fill: Theme.text.primary, width: '2.25rem', height: '2.25rem', background: { color: Theme.background.modal }, cursor: 'pointer', class: "hovered-icon", mediaQueries: [
+                    this.$render("i-vstack", { verticalAlignment: 'space-between', horizontalAlignment: 'start', height: '50%', padding: { right: '0.75rem', left: '0.75rem' }, position: 'absolute', left: '0px', top: '0px', zIndex: 100 },
+                        this.$render("i-icon", { border: { radius: '50%' }, padding: {
+                                top: '0.5rem',
+                                right: '0.5rem',
+                                bottom: '0.5rem',
+                                left: '0.5rem',
+                            }, name: 'times', fill: Theme.text.primary, width: '2.25rem', height: '2.25rem', background: { color: Theme.background.modal }, cursor: 'pointer', margin: { top: '0.75rem' }, class: 'hovered-icon', onClick: this.onClose }),
+                        this.$render("i-icon", { id: 'btnPrev', border: { radius: '50%' }, padding: {
+                                top: '0.5rem',
+                                right: '0.5rem',
+                                bottom: '0.5rem',
+                                left: '0.5rem',
+                            }, name: 'arrow-left', fill: Theme.text.primary, width: '2.25rem', height: '2.25rem', background: { color: Theme.background.modal }, cursor: 'pointer', class: 'hovered-icon', mediaQueries: [
                                 {
                                     maxWidth: '768px',
                                     properties: { visible: false },
-                                }
+                                },
                             ], onClick: this.onPrev })),
-                    this.$render("i-carousel-slider", { id: 'imagesSlider', maxWidth: '75%', width: '100%', height: '100%', margin: { left: 'auto', right: 'auto' }, indicators: false, autoplay: false, swipe: true, mediaQueries: [
+                    this.$render("i-carousel-slider", { id: 'imagesSlider', maxWidth: '75%', width: '100%', height: '100%', margin: { left: 'auto', right: 'auto' }, indicators: false, autoplay: false, swipe: true, onSwipeEnd: this.onSwipeEnd, mediaQueries: [
                             {
                                 maxWidth: '768px',
                                 properties: { maxWidth: '100%', indicators: true },
-                            }
+                            },
                         ] }),
-                    this.$render("i-vstack", { verticalAlignment: 'space-between', horizontalAlignment: 'end', height: '50%', padding: { right: '0.75rem', left: '0.75rem' }, position: 'absolute', right: "0px", top: "0px", zIndex: 100 },
-                        this.$render("i-icon", { opacity: 0, border: { radius: '50%' }, padding: { top: '0.5rem', right: '0.5rem', bottom: '0.5rem', left: '0.5rem' }, name: "angle-double-right", fill: Theme.text.primary, width: '2.25rem', height: '2.25rem', background: { color: Theme.background.modal }, cursor: 'pointer', class: "hovered-icon", margin: { top: '0.75rem' }, onClick: this.onExpand }),
-                        this.$render("i-icon", { id: "btnNext", border: { radius: '50%' }, padding: { top: '0.5rem', right: '0.5rem', bottom: '0.5rem', left: '0.5rem' }, name: 'arrow-right', fill: Theme.text.primary, width: '2.25rem', height: '2.25rem', background: { color: Theme.background.modal }, cursor: 'pointer', class: "hovered-icon", mediaQueries: [
+                    this.$render("i-vstack", { verticalAlignment: 'space-between', horizontalAlignment: 'end', height: '50%', padding: { right: '0.75rem', left: '0.75rem' }, position: 'absolute', right: '0px', top: '0px', zIndex: 100 },
+                        this.$render("i-icon", { opacity: 0, border: { radius: '50%' }, padding: {
+                                top: '0.5rem',
+                                right: '0.5rem',
+                                bottom: '0.5rem',
+                                left: '0.5rem',
+                            }, name: 'angle-double-right', fill: Theme.text.primary, width: '2.25rem', height: '2.25rem', background: { color: Theme.background.modal }, cursor: 'pointer', class: 'hovered-icon', margin: { top: '0.75rem' } }),
+                        this.$render("i-icon", { id: 'btnNext', border: { radius: '50%' }, padding: {
+                                top: '0.5rem',
+                                right: '0.5rem',
+                                bottom: '0.5rem',
+                                left: '0.5rem',
+                            }, name: 'arrow-right', fill: Theme.text.primary, width: '2.25rem', height: '2.25rem', background: { color: Theme.background.modal }, cursor: 'pointer', class: 'hovered-icon', mediaQueries: [
                                 {
                                     maxWidth: '768px',
                                     properties: { visible: false },
-                                }
+                                },
                             ], onClick: this.onNext })))));
         }
     };

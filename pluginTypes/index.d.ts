@@ -32,6 +32,13 @@ declare module "@scom/scom-image-gallery/galleryModal.tsx" {
     }
     export default class ScomImageGalleryModal extends Module {
         private _data;
+        private zoom;
+        private lastTap;
+        private inAnimation;
+        private isMousedown;
+        private initialOffset;
+        private offset;
+        private currentEl;
         private mdGallery;
         private imagesSlider;
         private btnPrev;
@@ -50,10 +57,22 @@ declare module "@scom/scom-image-gallery/galleryModal.tsx" {
         private onPrev;
         private updateControls;
         private onClose;
-        private onExpand;
         onShowModal(): void;
         onOpenModal(): void;
         onCloseModal(): void;
+        _handleMouseDown(event: PointerEvent | MouseEvent | TouchEvent, stopPropagation?: boolean): boolean;
+        _handleMouseMove(event: PointerEvent | MouseEvent | TouchEvent, stopPropagation?: boolean): boolean;
+        _handleMouseUp(event: PointerEvent | MouseEvent | TouchEvent, stopPropagation?: boolean): boolean;
+        private detectDoubleTap;
+        private scale;
+        private animateFn;
+        private addOffset;
+        private handleDoubleTap;
+        private getCurrentZoomCenter;
+        private updateImage;
+        private boundPan;
+        private onSwipeEnd;
+        disconnectedCallback(): void;
         render(): any;
     }
 }
