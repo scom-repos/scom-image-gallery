@@ -7,7 +7,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 define("@scom/scom-image-gallery/index.css.ts", ["require", "exports", "@ijstech/components"], function (require, exports, components_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.gridStyle = exports.modalStyle = void 0;
+    exports.carouselItemStyle = exports.gridStyle = exports.modalStyle = void 0;
     const Theme = components_1.Styles.Theme.ThemeVars;
     exports.modalStyle = components_1.Styles.style({
         $nest: {
@@ -23,6 +23,14 @@ define("@scom/scom-image-gallery/index.css.ts", ["require", "exports", "@ijstech
     });
     exports.gridStyle = components_1.Styles.style({
         $nest: {}
+    });
+    exports.carouselItemStyle = components_1.Styles.style({
+        $nest: {
+            'i-image': {
+                transformOrigin: '0% 0%',
+                position: 'absolute'
+            }
+        }
     });
 });
 define("@scom/scom-image-gallery/interface.ts", ["require", "exports"], function (require, exports) {
@@ -80,7 +88,7 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
             this.imagesSlider.items = [...this._data.images].map((item) => {
                 return {
                     controls: [
-                        this.$render("i-vstack", { height: '100%', width: '100%', verticalAlignment: 'center', horizontalAlignment: 'center', overflow: 'hidden' },
+                        this.$render("i-vstack", { height: '100%', width: '100%', verticalAlignment: 'center', horizontalAlignment: 'center', overflow: 'hidden', position: 'relative' },
                             this.$render("i-image", { display: 'block', width: '100%', height: 'auto', maxHeight: '100vh', url: item.url })),
                     ],
                 };
@@ -180,9 +188,15 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
             this.lastTap = curTime;
         }
         scale(scale, center) {
+            const oldZoom = this.zoom;
             this.zoom *= scale;
             this.zoom = Math.max(0.5, Math.min(3.0, this.zoom));
-            this.offset = { x: 0, y: 0 };
+            const _scale = this.zoom / oldZoom;
+            this.addOffset({
+                x: (_scale - 1) * (center.x + this.offset.x),
+                y: (_scale - 1) * (center.y + this.offset.y)
+            });
+            this.updateImage();
         }
         animateFn(duration, framefn) {
             const startTime = new Date().getTime();
@@ -244,14 +258,14 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
             this.boundPan();
             const offsetX = -this.offset.x / this.zoom;
             const offsetY = -this.offset.y / this.zoom;
-            const translate3d = 'translate3d(' + offsetX + 'px,' + offsetY + 'px, 0px)';
-            const scale3d = 'scale3d(' + this.zoom + ', ' + this.zoom + ', 1)';
+            const translate = 'translate(' + offsetX + 'px,' + offsetY + 'px)';
+            const scale = 'scale(' + this.zoom + ', ' + this.zoom + ')';
             if (this.currentEl) {
-                this.currentEl.style.webkitTransform = translate3d;
-                this.currentEl.style.transform = translate3d;
+                this.currentEl.style.webkitTransform = translate;
+                this.currentEl.style.transform = translate;
                 const img = this.currentEl.querySelector('img');
                 if (img)
-                    img.style.transform = scale3d;
+                    img.style.transform = scale;
             }
         }
         boundPan() {
@@ -276,10 +290,10 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
                 this.zoom = 1;
                 this.initialOffset = { x: 0, y: 0 };
                 this.offset = { x: 0, y: 0 };
-                this.currentEl.style.transform = 'translate3d(' + 0 + 'px,' + 0 + 'px, 0px)';
+                this.currentEl.style.transform = 'translate(' + 0 + 'px,' + 0 + 'px)';
                 const img = this.currentEl.querySelector('img');
                 if (img) {
-                    img.style.transform = 'scale3d(' + this.zoom + ', ' + this.zoom + ', 1) ';
+                    img.style.transform = 'scale(' + this.zoom + ', ' + this.zoom + ')';
                 }
                 this.currentEl = null;
             }
@@ -317,7 +331,7 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
                                 maxWidth: '768px',
                                 properties: { maxWidth: '100%', indicators: true },
                             },
-                        ] }),
+                        ], class: index_css_1.carouselItemStyle }),
                     this.$render("i-vstack", { verticalAlignment: 'space-between', horizontalAlignment: 'end', height: '50%', padding: { right: '0.75rem', left: '0.75rem' }, position: 'absolute', right: '0px', top: '0px', zIndex: 100 },
                         this.$render("i-icon", { opacity: 0, border: { radius: '50%' }, padding: {
                                 top: '0.5rem',
