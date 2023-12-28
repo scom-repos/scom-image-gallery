@@ -97,6 +97,7 @@ declare module "@scom/scom-image-gallery" {
         private mdImages;
         private gridImages;
         private pnlGallery;
+        private pnlRatio;
         tag: any;
         constructor(parent?: Container, options?: any);
         init(): void;
