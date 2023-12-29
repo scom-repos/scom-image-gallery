@@ -8,7 +8,8 @@ import {
   CarouselSlider,
   Modal,
   Icon,
-  Image
+  Image,
+  application
 } from '@ijstech/components'
 import { carouselItemStyle, modalStyle } from './index.css'
 import { IImage, IImageGallery } from './interface'
@@ -17,6 +18,7 @@ const Theme = Styles.Theme.ThemeVars
 interface ScomImageGalleryModalElement extends ControlElement {
   images?: IImage[]
   activeSlide?: number
+  onSlideChange?: (index: number) => void;
 }
 
 interface IImageGalleryMd extends IImageGallery {
@@ -52,6 +54,7 @@ export default class ScomImageGalleryModal extends Module {
   private imagesSlider: CarouselSlider
   private btnPrev: Icon
   private btnNext: Icon
+  public onSlideChange: (index: number) => void;
 
   constructor(parent?: Container, options?: any) {
     super(parent, options)
@@ -172,10 +175,19 @@ export default class ScomImageGalleryModal extends Module {
   onOpenModal() {
     this.imagesSlider.activeSlide = this.activeSlide
     this.updateControls()
+    application.EventBus.dispatch('IMAGE_GALLERY_VIEW_IMAGE', this.mdGallery);
   }
 
   onCloseModal() {
-    this.mdGallery.visible = false
+    const found = location.hash.match(/\/photo\/\d+$/);
+    if (found) {
+      if (history.length > 1) {
+        history.back();
+      } else {
+        const url = found.input.substring(0, found.index);
+        history.replaceState(null, null, url);
+      }
+    }
   }
 
   _handleMouseDown(
@@ -357,6 +369,10 @@ export default class ScomImageGalleryModal extends Module {
     this.updateControls();
   }
 
+  private handleSlideChange(index: number) {
+    if (this.onSlideChange) this.onSlideChange(index);
+  }
+
   disconnectedCallback(): void {
     super.disconnectedCallback()
     // this.imagesSlider.removeEventListener('mousewheel', (e: WheelEvent) =>
@@ -373,7 +389,8 @@ export default class ScomImageGalleryModal extends Module {
         height={'100vh'}
         padding={{ top: 0, right: 0, bottom: 0, left: 0 }}
         overflow={'hidden'}
-        onOpen={this.onOpenModal}
+        onOpen={this.onOpenModal} 
+        onClose={this.onCloseModal}
       >
         <i-panel width={'100vw'} height={'100vh'} class={modalStyle}>
           <i-vstack
@@ -446,6 +463,7 @@ export default class ScomImageGalleryModal extends Module {
               },
             ]}
             class={carouselItemStyle}
+            onSlideChange={this.handleSlideChange}
           ></i-carousel-slider>
           <i-vstack
             verticalAlignment='space-between'

@@ -19,6 +19,7 @@ import { gridStyle } from './index.css';
 interface ScomImageGalleryElement extends ControlElement {
   lazyLoad?: boolean;
   images: IImage[];
+  hash?: string;
 }
 
 declare global {
@@ -38,6 +39,7 @@ export default class ScomImageGallery extends Module {
   private gridImages: CardLayout
   private pnlGallery: VStack
   private pnlRatio: Panel;
+  private _currHash: string;
 
   tag: any = {}
 
@@ -47,11 +49,18 @@ export default class ScomImageGallery extends Module {
 
   init() {
     super.init()
+    this._currHash = location.hash;
     this.setTag({ width: '100%', height: 'auto' })
     const lazyLoad = this.getAttribute('lazyLoad', true, false)
     if (!lazyLoad) {
       const images = this.getAttribute('images', true)
-      if (images) this.setData({ images })
+      const hash = this.getAttribute('hash', true)
+      const selectedImage = this.getAttribute('selectedImage', true)
+      let data: any = {};
+      if (images) data.images = images;
+      if (hash) data.hash = hash;
+      this.setData(data)
+      if (selectedImage != null) this.selectedImage = selectedImage;
     }
   }
 
@@ -68,13 +77,30 @@ export default class ScomImageGallery extends Module {
     this._data.images = value
   }
 
+  get hash() {
+    return this._data.hash;
+  }
+  set hash(value: string) {
+    this._data.hash = value;
+  }
+
+  get selectedImage() {
+    return this.mdImages.activeSlide;
+  }
+  set selectedImage(index: number) {
+    this.mdImages.activeSlide = index;
+    this.mdImages.onShowModal();
+  }
+
   private getData() {
     return this._data
   }
 
   private setData(value: IImageGallery) {
-    this._data = value
+    const { selectedImage, ...rest } = value;
+    this._data = rest;
     this.renderUI()
+    if (selectedImage != null) this.selectedImage = selectedImage;
   }
 
   private renderUI() {
@@ -106,7 +132,7 @@ export default class ScomImageGallery extends Module {
             stack={{grow: '1'}}
             width={'100%'} height={'100%'}
             cursor='pointer'
-            onClick={() => this.onImageSelected(i)}
+            onClick={() => this.selectImage(i)}
           ></i-panel>,
           imageEl
         );
@@ -118,9 +144,13 @@ export default class ScomImageGallery extends Module {
     }
   }
 
-  private onImageSelected(index: number) {
-    this.mdImages.activeSlide = index;
-    this.mdImages.onShowModal();
+  private selectImage(index: number) {
+    this.selectedImage = index;
+    history.pushState(null, null, `${this.hash || this._currHash}/photo/${index + 1}`);
+  }
+
+  private onSlideChange(index: number) {
+    history.replaceState(null, null, `${this.hash || this._currHash}/photo/${index + 1}`);
   }
 
   getConfigurators() {
@@ -250,7 +280,7 @@ export default class ScomImageGallery extends Module {
       this.pnlGallery.height = 'auto'
       if (border) {
         this.pnlGallery.border = border;
-      }
+      }8
     }
   }
 
@@ -279,6 +309,7 @@ export default class ScomImageGallery extends Module {
           ></i-card-layout>
           <i-scom-image-gallery--modal
             id="mdImages"
+            onSlideChange={this.onSlideChange}
           />
         </i-panel>
       </i-vstack>
