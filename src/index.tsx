@@ -9,12 +9,10 @@ import {
   CardLayout,
   Control,
   VStack,
-  Panel,
-  Image,
+  Panel
 } from '@ijstech/components'
 import ScomImageGalleryModal from './galleryModal'
 import { IImage, IImageGallery } from './interface';
-import { gridStyle } from './index.css';
 
 interface ScomImageGalleryElement extends ControlElement {
   lazyLoad?: boolean;
@@ -80,7 +78,6 @@ export default class ScomImageGallery extends Module {
   private renderUI() {
     this.mdImages.setData({ images: this.images, activeSlide: 0 });
     this.gridImages.clearInnerHTML();
-    this.pnlRatio.padding = {bottom: '56.25%'}
     const length = this.images.length;
     this.gridImages.columnsPerRow = length > 1 ? 2 : 1;
     for (let i = 0; i < this.gridImages.columnsPerRow; i++) {
@@ -92,26 +89,25 @@ export default class ScomImageGallery extends Module {
       const wrapper = this.gridImages.children[wrapperIndex] as Control;
       const image = this.images[i];
       if (wrapper) {
-        const imageEl: Image = <i-image
-          url={image.url}
-          width={'100%'} height={'100%'}
-          opacity={0}
-          position='absolute' top={0} left={0}
-          zIndex={-1}
-        ></i-image>
         wrapper.append(
           <i-panel
             background={{color: `url(${image.url}) center center / cover no-repeat`}}
             display="block"
             stack={{grow: '1'}}
-            width={'100%'} height={'100%'}
+            width={'100%'} height={'auto'}
             cursor='pointer'
             onClick={() => this.onImageSelected(i)}
-          ></i-panel>,
-          imageEl
+          ></i-panel>
         );
-        if (this.gridImages.columnsPerRow === 1) {
-          const heightPercent = (imageEl.offsetHeight * 100) / imageEl.offsetWidth;
+      }
+    }
+
+    if (this.gridImages.columnsPerRow === 1 && this.images?.length) {
+      const imgEl = new Image();
+      imgEl.src = this.images[0].url;
+      imgEl.onload = () => {
+        const heightPercent = (imgEl.height * 100) / imgEl.width;
+        if (!isNaN(heightPercent)) {
           this.pnlRatio.padding = {bottom: `${heightPercent}%`};
         }
       }
@@ -263,7 +259,11 @@ export default class ScomImageGallery extends Module {
         overflow={'hidden'}
         position='relative'
       >
-        <i-panel id="pnlRatio" width="100%"></i-panel>
+        <i-panel
+          id="pnlRatio"
+          width="100%" height={'100%'}
+          padding={{bottom: '56.25%'}}
+        ></i-panel>
         <i-panel
           position='absolute'
           width={'100%'} height={'100%'}
@@ -275,7 +275,6 @@ export default class ScomImageGallery extends Module {
             width={'100%'} height={'100%'}
             border={{radius: 'inherit'}}
             gap={{column: 2, row: 2}}
-            class={gridStyle}
           ></i-card-layout>
           <i-scom-image-gallery--modal
             id="mdImages"
