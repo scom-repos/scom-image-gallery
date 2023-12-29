@@ -137,9 +137,19 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
         onOpenModal() {
             this.imagesSlider.activeSlide = this.activeSlide;
             this.updateControls();
+            components_2.application.EventBus.dispatch('IMAGE_GALLERY_VIEW_IMAGE', this.mdGallery);
         }
         onCloseModal() {
-            this.mdGallery.visible = false;
+            const found = location.hash.match(/\/photo\/\d+$/);
+            if (found) {
+                if (history.length > 1) {
+                    history.back();
+                }
+                else {
+                    const url = found.input.substring(0, found.index);
+                    history.replaceState(null, null, url);
+                }
+            }
         }
         _handleMouseDown(event, stopPropagation) {
             this.isMousedown = true;
@@ -299,6 +309,10 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
             }
             this.updateControls();
         }
+        handleSlideChange(index) {
+            if (this.onSlideChange)
+                this.onSlideChange(index);
+        }
         disconnectedCallback() {
             super.disconnectedCallback();
             // this.imagesSlider.removeEventListener('mousewheel', (e: WheelEvent) =>
@@ -306,7 +320,7 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
             // )
         }
         render() {
-            return (this.$render("i-modal", { id: 'mdGallery', showBackdrop: true, width: '100vw', height: '100vh', padding: { top: 0, right: 0, bottom: 0, left: 0 }, overflow: 'hidden', onOpen: this.onOpenModal },
+            return (this.$render("i-modal", { id: 'mdGallery', showBackdrop: true, width: '100vw', height: '100vh', padding: { top: 0, right: 0, bottom: 0, left: 0 }, overflow: 'hidden', onOpen: this.onOpenModal, onClose: this.onCloseModal },
                 this.$render("i-panel", { width: '100vw', height: '100vh', class: index_css_1.modalStyle },
                     this.$render("i-vstack", { verticalAlignment: 'space-between', horizontalAlignment: 'start', height: '50%', padding: { right: '0.75rem', left: '0.75rem' }, position: 'absolute', left: '0px', top: '0px', zIndex: 100 },
                         this.$render("i-icon", { border: { radius: '50%' }, padding: {
@@ -331,7 +345,7 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
                                 maxWidth: '768px',
                                 properties: { maxWidth: '100%', indicators: true },
                             },
-                        ], class: index_css_1.carouselItemStyle }),
+                        ], class: index_css_1.carouselItemStyle, onSlideChange: this.handleSlideChange }),
                     this.$render("i-vstack", { verticalAlignment: 'space-between', horizontalAlignment: 'end', height: '50%', padding: { right: '0.75rem', left: '0.75rem' }, position: 'absolute', right: '0px', top: '0px', zIndex: 100 },
                         this.$render("i-icon", { opacity: 0, border: { radius: '50%' }, padding: {
                                 top: '0.5rem',
@@ -368,12 +382,21 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
         }
         init() {
             super.init();
+            this._currHash = location.hash;
             this.setTag({ width: '100%', height: 'auto' });
             const lazyLoad = this.getAttribute('lazyLoad', true, false);
             if (!lazyLoad) {
                 const images = this.getAttribute('images', true);
+                const hash = this.getAttribute('hash', true);
+                const selectedImage = this.getAttribute('selectedImage', true);
+                let data = {};
                 if (images)
-                    this.setData({ images });
+                    data.images = images;
+                if (hash)
+                    data.hash = hash;
+                this.setData(data);
+                if (selectedImage != null)
+                    this.selectedImage = selectedImage;
             }
         }
         static async create(options, parent) {
@@ -387,12 +410,28 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
         set images(value) {
             this._data.images = value;
         }
+        get hash() {
+            return this._data.hash;
+        }
+        set hash(value) {
+            this._data.hash = value;
+        }
+        get selectedImage() {
+            return this.mdImages.activeSlide;
+        }
+        set selectedImage(index) {
+            this.mdImages.activeSlide = index;
+            this.mdImages.onShowModal();
+        }
         getData() {
             return this._data;
         }
         setData(value) {
-            this._data = value;
+            const { selectedImage, ...rest } = value;
+            this._data = rest;
             this.renderUI();
+            if (selectedImage != null)
+                this.selectedImage = selectedImage;
         }
         renderUI() {
             this.mdImages.setData({ images: this.images, activeSlide: 0 });
@@ -410,7 +449,7 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
                 const image = this.images[i];
                 if (wrapper) {
                     const imageEl = this.$render("i-image", { url: image.url, width: '100%', height: '100%', opacity: 0, position: 'absolute', top: 0, left: 0, zIndex: -1 });
-                    wrapper.append(this.$render("i-panel", { background: { color: `url(${image.url}) center center / cover no-repeat` }, display: "block", stack: { grow: '1' }, width: '100%', height: '100%', cursor: 'pointer', onClick: () => this.onImageSelected(i) }), imageEl);
+                    wrapper.append(this.$render("i-panel", { background: { color: `url(${image.url}) center center / cover no-repeat` }, display: "block", stack: { grow: '1' }, width: '100%', height: '100%', cursor: 'pointer', onClick: () => this.selectImage(i) }), imageEl);
                     if (this.gridImages.columnsPerRow === 1) {
                         const heightPercent = (imageEl.offsetHeight * 100) / imageEl.offsetWidth;
                         this.pnlRatio.padding = { bottom: `${heightPercent}%` };
@@ -418,9 +457,12 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
                 }
             }
         }
-        onImageSelected(index) {
-            this.mdImages.activeSlide = index;
-            this.mdImages.onShowModal();
+        selectImage(index) {
+            this.selectedImage = index;
+            history.pushState(null, null, `${this.hash || this._currHash}/photo/${index + 1}`);
+        }
+        onSlideChange(index) {
+            history.replaceState(null, null, `${this.hash || this._currHash}/photo/${index + 1}`);
         }
         getConfigurators() {
             return [
@@ -546,6 +588,7 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
                 if (border) {
                     this.pnlGallery.border = border;
                 }
+                8;
             }
         }
         render() {
@@ -553,7 +596,7 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
                 this.$render("i-panel", { id: "pnlRatio", width: "100%" }),
                 this.$render("i-panel", { position: 'absolute', width: '100%', height: '100%', top: "0px", left: "0px", overflow: 'hidden' },
                     this.$render("i-card-layout", { id: "gridImages", width: '100%', height: '100%', border: { radius: 'inherit' }, gap: { column: 2, row: 2 }, class: index_css_2.gridStyle }),
-                    this.$render("i-scom-image-gallery--modal", { id: "mdImages" }))));
+                    this.$render("i-scom-image-gallery--modal", { id: "mdImages", onSlideChange: this.onSlideChange }))));
         }
     };
     ScomImageGallery = __decorate([
