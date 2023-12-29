@@ -2,6 +2,7 @@
 declare module "@scom/scom-image-gallery/index.css.ts" {
     export const modalStyle: string;
     export const gridStyle: string;
+    export const carouselItemStyle: string;
 }
 /// <amd-module name="@scom/scom-image-gallery/interface.ts" />
 declare module "@scom/scom-image-gallery/interface.ts" {
@@ -96,6 +97,7 @@ declare module "@scom/scom-image-gallery" {
         private mdImages;
         private gridImages;
         private pnlGallery;
+        private pnlRatio;
         tag: any;
         constructor(parent?: Container, options?: any);
         init(): void;

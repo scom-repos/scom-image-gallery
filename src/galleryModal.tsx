@@ -8,10 +8,9 @@ import {
   CarouselSlider,
   Modal,
   Icon,
-  Image,
-  Control
+  Image
 } from '@ijstech/components'
-import { modalStyle } from './index.css'
+import { carouselItemStyle, modalStyle } from './index.css'
 import { IImage, IImageGallery } from './interface'
 const Theme = Styles.Theme.ThemeVars
 
@@ -109,6 +108,7 @@ export default class ScomImageGalleryModal extends Module {
             verticalAlignment='center'
             horizontalAlignment='center'
             overflow='hidden'
+            position='relative'
           >
             <i-image
               display='block'
@@ -236,9 +236,15 @@ export default class ScomImageGalleryModal extends Module {
   }
 
   private scale(scale: number, center: IPoint) {
+    const oldZoom = this.zoom;
     this.zoom *= scale
     this.zoom = Math.max(0.5, Math.min(3.0, this.zoom))
-    this.offset = { x: 0, y: 0 };
+    const _scale = this.zoom / oldZoom;
+    this.addOffset({
+      x: (_scale - 1) * (center.x + this.offset.x),
+      y: (_scale - 1) * (center.y + this.offset.y)
+    });
+    this.updateImage();
   }
 
   private animateFn(duration: number, framefn: any) {
@@ -305,13 +311,13 @@ export default class ScomImageGalleryModal extends Module {
     this.boundPan();
     const offsetX = -this.offset.x / this.zoom;
     const offsetY = -this.offset.y / this.zoom;
-    const translate3d = 'translate3d(' + offsetX + 'px,' + offsetY + 'px, 0px)';
-    const scale3d = 'scale3d(' + this.zoom + ', ' + this.zoom + ', 1)';
+    const translate = 'translate(' + offsetX + 'px,' + offsetY + 'px)';
+    const scale = 'scale(' + this.zoom + ', ' + this.zoom + ')';
     if (this.currentEl) {
-      this.currentEl.style.webkitTransform = translate3d;
-      this.currentEl.style.transform = translate3d;
+      this.currentEl.style.webkitTransform = translate;
+      this.currentEl.style.transform = translate;
       const img = this.currentEl.querySelector('img');
-      if (img) img.style.transform = scale3d;
+      if (img) img.style.transform = scale;
     }
   }
 
@@ -341,10 +347,10 @@ export default class ScomImageGalleryModal extends Module {
       this.zoom = 1;
       this.initialOffset = { x: 0, y: 0 };
       this.offset = { x: 0, y: 0 };
-      this.currentEl.style.transform = 'translate3d(' + 0 + 'px,' + 0 + 'px, 0px)'
+      this.currentEl.style.transform = 'translate(' + 0 + 'px,' + 0 + 'px)'
       const img = this.currentEl.querySelector('img')
       if (img) {
-        img.style.transform = 'scale3d(' + this.zoom + ', ' + this.zoom + ', 1) '
+        img.style.transform = 'scale(' + this.zoom + ', ' + this.zoom + ')'
       }
       this.currentEl = null;
     }
@@ -439,6 +445,7 @@ export default class ScomImageGalleryModal extends Module {
                 properties: { maxWidth: '100%', indicators: true },
               },
             ]}
+            class={carouselItemStyle}
           ></i-carousel-slider>
           <i-vstack
             verticalAlignment='space-between'

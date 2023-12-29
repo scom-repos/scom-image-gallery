@@ -9,6 +9,8 @@ import {
   CardLayout,
   Control,
   VStack,
+  Panel,
+  Image,
 } from '@ijstech/components'
 import ScomImageGalleryModal from './galleryModal'
 import { IImage, IImageGallery } from './interface';
@@ -35,6 +37,7 @@ export default class ScomImageGallery extends Module {
   private mdImages: ScomImageGalleryModal
   private gridImages: CardLayout
   private pnlGallery: VStack
+  private pnlRatio: Panel;
 
   tag: any = {}
 
@@ -77,6 +80,7 @@ export default class ScomImageGallery extends Module {
   private renderUI() {
     this.mdImages.setData({ images: this.images, activeSlide: 0 });
     this.gridImages.clearInnerHTML();
+    this.pnlRatio.padding = {bottom: '56.25%'}
     const length = this.images.length;
     this.gridImages.columnsPerRow = length > 1 ? 2 : 1;
     for (let i = 0; i < this.gridImages.columnsPerRow; i++) {
@@ -88,7 +92,14 @@ export default class ScomImageGallery extends Module {
       const wrapper = this.gridImages.children[wrapperIndex] as Control;
       const image = this.images[i];
       if (wrapper) {
-        wrapper.appendChild(
+        const imageEl: Image = <i-image
+          url={image.url}
+          width={'100%'} height={'100%'}
+          opacity={0}
+          position='absolute' top={0} left={0}
+          zIndex={-1}
+        ></i-image>
+        wrapper.append(
           <i-panel
             background={{color: `url(${image.url}) center center / cover no-repeat`}}
             display="block"
@@ -96,8 +107,13 @@ export default class ScomImageGallery extends Module {
             width={'100%'} height={'100%'}
             cursor='pointer'
             onClick={() => this.onImageSelected(i)}
-          ></i-panel>
+          ></i-panel>,
+          imageEl
         );
+        if (this.gridImages.columnsPerRow === 1) {
+          const heightPercent = (imageEl.offsetHeight * 100) / imageEl.offsetWidth;
+          this.pnlRatio.padding = {bottom: `${heightPercent}%`};
+        }
       }
     }
   }
@@ -247,7 +263,7 @@ export default class ScomImageGallery extends Module {
         overflow={'hidden'}
         position='relative'
       >
-        <i-panel padding={{bottom: '56.25%'}} width="100%"></i-panel>
+        <i-panel id="pnlRatio" width="100%"></i-panel>
         <i-panel
           position='absolute'
           width={'100%'} height={'100%'}

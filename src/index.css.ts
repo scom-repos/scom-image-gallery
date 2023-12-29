@@ -18,3 +18,12 @@ export const gridStyle = Styles.style({
   $nest: {
   }
 })
+
+export const carouselItemStyle = Styles.style({
+  $nest: {
+    'i-image': {
+      transformOrigin: '0% 0%',
+      position: 'absolute'
+    }
+  }
+})
