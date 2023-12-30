@@ -9,7 +9,7 @@ import {
   Modal,
   Icon,
   Image,
-  Control
+  application
 } from '@ijstech/components'
 import { carouselItemStyle, modalStyle } from './index.css'
 import { IImage, IImageGallery } from './interface'
@@ -18,6 +18,7 @@ const Theme = Styles.Theme.ThemeVars
 interface ScomImageGalleryModalElement extends ControlElement {
   images?: IImage[]
   activeSlide?: number
+  onSlideChange?: (index: number) => void;
 }
 
 interface IImageGalleryMd extends IImageGallery {
@@ -63,6 +64,7 @@ export default class ScomImageGalleryModal extends Module {
   private imagesSlider: CarouselSlider
   private btnPrev: Icon
   private btnNext: Icon
+  public onSlideChange: (index: number) => void;
 
   constructor(parent?: Container, options?: any) {
     super(parent, options)
@@ -154,22 +156,31 @@ export default class ScomImageGalleryModal extends Module {
     this.btnPrev.visible = this.imagesSlider.activeSlide > 0
   }
 
-  private onCloseFn() {
-    this.imagesSlider.activeSlide = 0
-    this.updateControls()
-  }
-
-  private onOpenFn() {
-    this.imagesSlider.activeSlide = this.activeSlide
-    this.updateControls()
+  private onCloseClicked() {
+    this.mdGallery.visible = false
   }
 
   onShowModal() {
     this.mdGallery.visible = true
   }
 
+  onOpenModal() {
+    this.imagesSlider.activeSlide = this.activeSlide
+    this.updateControls()
+    application.EventBus.dispatch('IMAGE_GALLERY_VIEW_IMAGE', this.mdGallery);
+  }
+
   onCloseModal() {
-    this.mdGallery.visible = false;
+    const found = location.hash.match(/\/photo\/\d+$/);
+    if (found) {
+      if (history.length > 1) {
+        history.back();
+      } else {
+        const url = found.input.substring(0, found.index);
+        history.replaceState(null, null, url);
+      }
+    }
+    this.imagesSlider.activeSlide = 0
     this.zoomOut();
   }
 
@@ -337,35 +348,35 @@ export default class ScomImageGalleryModal extends Module {
     };
   }
 
-  private handleDoubleTap(event: TouchEvent) {
-    let center = {
-      x: event.touches[0].pageX,
-      y: event.touches[0].pageY
-    };
-    const zoomFactor = this.zoom > 1 ? 1 : 2;
-    const startZoomFactor = this.zoom;
-    if (startZoomFactor > zoomFactor) {
-      center = this.getCurrentZoomCenter();
-    }
-    this.isDoubleTap = true;
-    const self = this;
-    const updateProgress = function(progress: number) {
-      const newZoom = startZoomFactor + progress * (zoomFactor - startZoomFactor);
-      self.scale(newZoom / self.zoom, center);
-    }
-    this.animateFn(animationDuration, updateProgress);
-  }
+  // private handleDoubleTap(event: TouchEvent) {
+  //   let center = {
+  //     x: event.touches[0].pageX,
+  //     y: event.touches[0].pageY
+  //   };
+  //   const zoomFactor = this.zoom > 1 ? 1 : 2;
+  //   const startZoomFactor = this.zoom;
+  //   if (startZoomFactor > zoomFactor) {
+  //     center = this.getCurrentZoomCenter();
+  //   }
+  //   this.isDoubleTap = true;
+  //   const self = this;
+  //   const updateProgress = function(progress: number) {
+  //     const newZoom = startZoomFactor + progress * (zoomFactor - startZoomFactor);
+  //     self.scale(newZoom / self.zoom, center);
+  //   }
+  //   this.animateFn(animationDuration, updateProgress);
+  // }
 
-  private getCurrentZoomCenter() {
-    const offsetLeft = this.offset.x - this.initialOffset.x
-    const centerX = -1 * this.offset.x - offsetLeft / (1 / this.zoom - 1)
-    const offsetTop = this.offset.y - this.initialOffset.y
-    const centerY = -1 * this.offset.y - offsetTop / (1 / this.zoom - 1)
-    return {
-      x: centerX,
-      y: centerY
-    }
-  }
+  // private getCurrentZoomCenter() {
+  //   const offsetLeft = this.offset.x - this.initialOffset.x
+  //   const centerX = -1 * this.offset.x - offsetLeft / (1 / this.zoom - 1)
+  //   const offsetTop = this.offset.y - this.initialOffset.y
+  //   const centerY = -1 * this.offset.y - offsetTop / (1 / this.zoom - 1)
+  //   return {
+  //     x: centerX,
+  //     y: centerY
+  //   }
+  // }
 
   private updateImage() {
     if (!this.currentEl) return;
@@ -449,6 +460,10 @@ export default class ScomImageGalleryModal extends Module {
     this.currentEl = null;
   }
 
+  private handleSlideChange(index: number) {
+    if (this.onSlideChange) this.onSlideChange(index);
+  }
+
   disconnectedCallback(): void {
     super.disconnectedCallback()
   }
@@ -462,8 +477,8 @@ export default class ScomImageGalleryModal extends Module {
         height={'100vh'}
         padding={{ top: 0, right: 0, bottom: 0, left: 0 }}
         overflow={'hidden'}
-        onOpen={this.onOpenFn}
-        onClose={this.onCloseFn}
+        onOpen={this.onOpenModal} 
+        onClose={this.onCloseModal}
       >
         <i-panel width={'100vw'} height={'100vh'} class={modalStyle}>
           <i-vstack
@@ -492,7 +507,7 @@ export default class ScomImageGalleryModal extends Module {
               cursor='pointer'
               margin={{ top: '0.75rem' }}
               class='hovered-icon'
-              onClick={() => this.onCloseModal()}
+              onClick={() => this.onCloseClicked()}
             ></i-icon>
             <i-icon
               id='btnPrev'
@@ -536,6 +551,7 @@ export default class ScomImageGalleryModal extends Module {
               },
             ]}
             class={carouselItemStyle}
+            onSlideChange={this.handleSlideChange}
           ></i-carousel-slider>
           <i-vstack
             verticalAlignment='space-between'

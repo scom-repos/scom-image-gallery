@@ -4,4 +4,6 @@ export interface IImage {
 
 export interface IImageGallery {
   images: IImage[];
+  hash?: string;
+  selectedImage?: number;
 }

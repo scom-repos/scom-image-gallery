@@ -10,6 +10,8 @@ declare module "@scom/scom-image-gallery/interface.ts" {
     }
     export interface IImageGallery {
         images: IImage[];
+        hash?: string;
+        selectedImage?: number;
     }
 }
 /// <amd-module name="@scom/scom-image-gallery/galleryModal.tsx" />
@@ -19,6 +21,7 @@ declare module "@scom/scom-image-gallery/galleryModal.tsx" {
     interface ScomImageGalleryModalElement extends ControlElement {
         images?: IImage[];
         activeSlide?: number;
+        onSlideChange?: (index: number) => void;
     }
     interface IImageGalleryMd extends IImageGallery {
         activeSlide?: number;
@@ -47,6 +50,7 @@ declare module "@scom/scom-image-gallery/galleryModal.tsx" {
         private imagesSlider;
         private btnPrev;
         private btnNext;
+        onSlideChange: (index: number) => void;
         constructor(parent?: Container, options?: any);
         init(): void;
         static create(options?: ScomImageGalleryModalElement, parent?: Container): Promise<ScomImageGalleryModal>;
@@ -60,9 +64,9 @@ declare module "@scom/scom-image-gallery/galleryModal.tsx" {
         private onNext;
         private onPrev;
         private updateControls;
-        private onCloseFn;
-        private onOpenFn;
+        private onCloseClicked;
         onShowModal(): void;
+        onOpenModal(): void;
         onCloseModal(): void;
         _handleMouseDown(event: PointerEvent | MouseEvent | TouchEvent, stopPropagation?: boolean): boolean;
         _handleMouseMove(event: PointerEvent | MouseEvent | TouchEvent, stopPropagation?: boolean): boolean;
@@ -83,6 +87,7 @@ declare module "@scom/scom-image-gallery/galleryModal.tsx" {
         private computeInitialOffset;
         private onSwipeEnd;
         private zoomOut;
+        private handleSlideChange;
         disconnectedCallback(): void;
         render(): any;
     }
@@ -94,6 +99,7 @@ declare module "@scom/scom-image-gallery" {
     interface ScomImageGalleryElement extends ControlElement {
         lazyLoad?: boolean;
         images: IImage[];
+        hash?: string;
     }
     global {
         namespace JSX {
@@ -108,16 +114,22 @@ declare module "@scom/scom-image-gallery" {
         private gridImages;
         private pnlGallery;
         private pnlRatio;
+        private _currHash;
         tag: any;
         constructor(parent?: Container, options?: any);
         init(): void;
         static create(options?: ScomImageGalleryElement, parent?: Container): Promise<ScomImageGallery>;
         get images(): IImage[];
         set images(value: IImage[]);
+        get hash(): string;
+        set hash(value: string);
+        get selectedImage(): number;
+        set selectedImage(index: number);
         private getData;
         private setData;
         private renderUI;
-        private onImageSelected;
+        private selectImage;
+        private onSlideChange;
         getConfigurators(): ({
             name: string;
             target: string;
