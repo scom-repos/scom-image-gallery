@@ -1,7 +1,6 @@
 /// <amd-module name="@scom/scom-image-gallery/index.css.ts" />
 declare module "@scom/scom-image-gallery/index.css.ts" {
     export const modalStyle: string;
-    export const gridStyle: string;
     export const carouselItemStyle: string;
 }
 /// <amd-module name="@scom/scom-image-gallery/interface.ts" />
@@ -42,6 +41,10 @@ declare module "@scom/scom-image-gallery/galleryModal.tsx" {
         private isMousedown;
         private initialOffset;
         private offset;
+        private isDoubleTap;
+        private lastCenter;
+        private lastDist;
+        private _initialOffsetSetup;
         private currentEl;
         private mdGallery;
         private imagesSlider;
@@ -61,22 +64,29 @@ declare module "@scom/scom-image-gallery/galleryModal.tsx" {
         private onNext;
         private onPrev;
         private updateControls;
-        private onClose;
+        private onCloseClicked;
         onShowModal(): void;
         onOpenModal(): void;
         onCloseModal(): void;
         _handleMouseDown(event: PointerEvent | MouseEvent | TouchEvent, stopPropagation?: boolean): boolean;
         _handleMouseMove(event: PointerEvent | MouseEvent | TouchEvent, stopPropagation?: boolean): boolean;
         _handleMouseUp(event: PointerEvent | MouseEvent | TouchEvent, stopPropagation?: boolean): boolean;
-        private detectDoubleTap;
+        private handleZoom;
+        private handleDrag;
+        private getDistance;
+        private getCenter;
         private scale;
         private animateFn;
         private addOffset;
         private handleDoubleTap;
         private getCurrentZoomCenter;
         private updateImage;
-        private boundPan;
+        private sanitizeOffset;
+        private getInitialZoomFactor;
+        private setupInitialOffset;
+        private computeInitialOffset;
         private onSwipeEnd;
+        private zoomOut;
         private handleSlideChange;
         disconnectedCallback(): void;
         render(): any;

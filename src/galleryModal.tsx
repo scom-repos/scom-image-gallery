@@ -30,6 +30,12 @@ interface IPoint {
   y: number;
 }
 
+const verticalPadding = 0;
+const horizontalPadding = 0;
+const animationDuration = 300;
+const maxZoom = 4;
+const minZoom = 0.5;
+
 declare global {
   namespace JSX {
     interface IntrinsicElements {
@@ -46,8 +52,12 @@ export default class ScomImageGalleryModal extends Module {
   private lastTap: number = 0
   private inAnimation: boolean = false
   private isMousedown: boolean = false;
-  private initialOffset: IPoint = { x: 0, y: 0 };
-  private offset: IPoint = { x: 0, y: 0 };
+  private initialOffset: IPoint = { x: 0, y: 0 }
+  private offset: IPoint = { x: 0, y: 0 }
+  private isDoubleTap: boolean = false
+  private lastCenter: IPoint | null = null;
+  private lastDist: number = 1;
+  private _initialOffsetSetup: boolean = false;
 
   private currentEl: Image
   private mdGallery: Modal
@@ -108,8 +118,8 @@ export default class ScomImageGalleryModal extends Module {
           <i-vstack
             height='100%'
             width={'100%'}
-            verticalAlignment='center'
             horizontalAlignment='center'
+            verticalAlignment='center'
             overflow='hidden'
             position='relative'
           >
@@ -119,7 +129,6 @@ export default class ScomImageGalleryModal extends Module {
               height={'auto'}
               maxHeight={'100vh'}
               url={item.url}
-              // overflow="hidden"
             ></i-image>
           </i-vstack>,
         ],
@@ -127,22 +136,7 @@ export default class ScomImageGalleryModal extends Module {
     }) as any
     this.imagesSlider.activeSlide = this.activeSlide
     this.updateControls()
-    // this.imagesSlider.addEventListener('mousewheel', (e: WheelEvent) => this.handleMouseWheel(e));
   }
-
-  // private handleMouseWheel(event: WheelEvent) {
-  //   event.preventDefault()
-  //   const target = event.target as HTMLElement
-  //   this.currentEl = target.closest('i-image') as Image
-  //   this.container = this.currentEl?.parentElement as Control
-  //   this.isMousedown = false;
-
-  //   this.zoom += (-event.deltaY / 4);
-  //   if (this.zoom < 0.5) { this.zoom = 0.5; }
-  //   if (this.zoom > 3) { this.zoom = 3; }
-  //   this.offset = { x: 0, y: 0 };
-  //   if (this.currentEl) this.updateImage();
-  // }
 
   private onNext() {
     if (!this._data.images) return
@@ -162,10 +156,8 @@ export default class ScomImageGalleryModal extends Module {
     this.btnPrev.visible = this.imagesSlider.activeSlide > 0
   }
 
-  private onClose() {
+  private onCloseClicked() {
     this.mdGallery.visible = false
-    this.imagesSlider.activeSlide = 0
-    this.updateControls()
   }
 
   onShowModal() {
@@ -188,6 +180,8 @@ export default class ScomImageGalleryModal extends Module {
         history.replaceState(null, null, url);
       }
     }
+    this.imagesSlider.activeSlide = 0
+    this.zoomOut();
   }
 
   _handleMouseDown(
@@ -198,12 +192,12 @@ export default class ScomImageGalleryModal extends Module {
     if (event instanceof TouchEvent) {
       const target = event.target as HTMLElement
       this.currentEl = target.closest('i-image') as Image
-      if (!this.currentEl) return false;
+      this.setupInitialOffset();
       this.initialOffset = {
-        x: event.touches[0].clientX,
-        y: event.touches[0].clientY
+        x: event.touches[0].pageX,
+        y: event.touches[0].pageY
       }
-      this.detectDoubleTap(event);
+      // this.detectDoubleTap(event);
     }
     return true
   }
@@ -213,18 +207,14 @@ export default class ScomImageGalleryModal extends Module {
     stopPropagation?: boolean
   ): boolean {
     if (!this.isMousedown) return;
-    if (event instanceof TouchEvent && this.currentEl && this.zoom > 1) {
-      const deltaX = (this.initialOffset.x - event.touches[0].clientX);
-      const deltaY = (this.initialOffset.y - event.touches[0].clientY);
-      this.addOffset({ x: deltaX, y: deltaY });
-      this.initialOffset = {
-        x: event.touches[0].clientX,
-        y: event.touches[0].clientY
+    if (event instanceof TouchEvent) {
+      const target = event.target as HTMLElement
+      this.currentEl = target.closest('i-image') as Image
+      if (this.currentEl) {
+        const result = this.handleZoom(event);
+        if (result) return;
       }
-      this.updateImage();
-      return;
     }
-
     return true
   }
 
@@ -234,23 +224,92 @@ export default class ScomImageGalleryModal extends Module {
   ): boolean {
     this.isMousedown = false;
     if (this.zoom > 1) return;
+    this.lastDist = 0;
+    this.lastCenter = null;
+    this.zoomOut();
     return true
   }
 
-  private detectDoubleTap(event: TouchEvent) {
-    const curTime = new Date().getTime()
-    const tapLen = curTime - this.lastTap
-    if (tapLen < 500 && tapLen > 0) {
-      this.handleDoubleTap(event)
-      event.preventDefault();
+  private handleZoom(event: TouchEvent) {
+    event.preventDefault();
+    if (event.touches.length > 1) {
+      this.setupInitialOffset();
+      const [touch1, touch2] = event.touches;
+      const p1: IPoint = {
+        x: touch1.pageX,
+        y: touch1.pageY,
+      };
+      const p2: IPoint = {
+        x: touch2.pageX,
+        y: touch2.pageY,
+      };
+
+      if (!this.lastCenter) {
+        this.lastCenter = this.getCenter(p1, p2);
+        return;
+      }
+      const newCenter = this.getCenter(p1, p2);
+      const dist = this.getDistance(p1, p2);
+
+      if (!this.lastDist) {
+        this.lastDist = dist;
+      }
+
+      this.scale(dist / this.lastDist, newCenter);
+
+      this.lastDist = dist;
+      this.lastCenter = newCenter;
     }
-    this.lastTap = curTime
+    else if (this.zoom > 1) {
+      this.handleDrag(event);
+    } else {
+      return;
+    }
+  
+    return true;
   }
+
+  private handleDrag(event: TouchEvent) {
+    const deltaX = (this.initialOffset.x - event.touches[0].pageX);
+    const deltaY = (this.initialOffset.y - event.touches[0].pageY);
+    this.addOffset({
+      x: deltaX,
+      y: deltaY
+    });
+    this.initialOffset = {
+      x: event.touches[0].pageX,
+      y: event.touches[0].pageY
+    }
+    this.updateImage();
+  }
+
+  private getDistance(p1: IPoint, p2: IPoint): number {
+    return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+  }
+
+  private getCenter(p1: IPoint, p2: IPoint): IPoint {
+    return {
+      x: (p1.x + p2.x) / 2,
+      y: (p1.y + p2.y) / 2,
+    };
+  }
+
+  // private detectDoubleTap(event: TouchEvent) {
+  //   const curTime = new Date().getTime()
+  //   const tapLen = curTime - this.lastTap
+  //   if (tapLen < 500 && tapLen > 0) {
+  //     this.handleDoubleTap(event)
+  //     // event.preventDefault();
+  //   } else {
+  //     this.isDoubleTap = false;
+  //   }
+  //   this.lastTap = curTime
+  // }
 
   private scale(scale: number, center: IPoint) {
     const oldZoom = this.zoom;
     this.zoom *= scale
-    this.zoom = Math.max(0.5, Math.min(3.0, this.zoom))
+    this.zoom = Math.max(minZoom, Math.min(maxZoom, this.zoom))
     const _scale = this.zoom / oldZoom;
     this.addOffset({
       x: (_scale - 1) * (center.x + this.offset.x),
@@ -289,84 +348,116 @@ export default class ScomImageGalleryModal extends Module {
     };
   }
 
-  private handleDoubleTap(event: TouchEvent) {
-    let center = {
-      x: event.touches[0].clientX,
-      y: event.touches[0].clientY
-    };
-    const zoomFactor = this.zoom > 1 ? 1 : 2;
-    const startZoomFactor = this.zoom;
-    if (startZoomFactor > zoomFactor) {
-      center = this.getCurrentZoomCenter();
-    }
+  // private handleDoubleTap(event: TouchEvent) {
+  //   let center = {
+  //     x: event.touches[0].pageX,
+  //     y: event.touches[0].pageY
+  //   };
+  //   const zoomFactor = this.zoom > 1 ? 1 : 2;
+  //   const startZoomFactor = this.zoom;
+  //   if (startZoomFactor > zoomFactor) {
+  //     center = this.getCurrentZoomCenter();
+  //   }
+  //   this.isDoubleTap = true;
+  //   const self = this;
+  //   const updateProgress = function(progress: number) {
+  //     const newZoom = startZoomFactor + progress * (zoomFactor - startZoomFactor);
+  //     self.scale(newZoom / self.zoom, center);
+  //   }
+  //   this.animateFn(animationDuration, updateProgress);
+  // }
 
-    const self = this;
-    const updateProgress = function(progress: number) {
-      const newZoom = startZoomFactor + progress * (zoomFactor - startZoomFactor);
-      self.scale(newZoom / self.zoom, center);
-    }
-    this.animateFn(300, updateProgress);
-  }
-
-  private getCurrentZoomCenter() {
-    const offsetLeft = this.offset.x - this.initialOffset.x
-    const centerX = -1 * this.offset.x - offsetLeft / (1 / this.zoom - 1)
-    const offsetTop = this.offset.y - this.initialOffset.y
-    const centerY = -1 * this.offset.y - offsetTop / (1 / this.zoom - 1)
-    return {
-      x: centerX,
-      y: centerY,
-    }
-  }
+  // private getCurrentZoomCenter() {
+  //   const offsetLeft = this.offset.x - this.initialOffset.x
+  //   const centerX = -1 * this.offset.x - offsetLeft / (1 / this.zoom - 1)
+  //   const offsetTop = this.offset.y - this.initialOffset.y
+  //   const centerY = -1 * this.offset.y - offsetTop / (1 / this.zoom - 1)
+  //   return {
+  //     x: centerX,
+  //     y: centerY
+  //   }
+  // }
 
   private updateImage() {
-    this.boundPan();
-    const offsetX = -this.offset.x / this.zoom;
-    const offsetY = -this.offset.y / this.zoom;
+    if (!this.currentEl) return;
+    this.offset = this.sanitizeOffset({...this.offset});
+    const zoomFactor = this.getInitialZoomFactor() * this.zoom;
+    const offsetX = -this.offset.x / zoomFactor;
+    const offsetY = -this.offset.y / zoomFactor;
     const translate = 'translate(' + offsetX + 'px,' + offsetY + 'px)';
-    const scale = 'scale(' + this.zoom + ', ' + this.zoom + ')';
-    if (this.currentEl) {
-      this.currentEl.style.webkitTransform = translate;
-      this.currentEl.style.transform = translate;
-      const img = this.currentEl.querySelector('img');
-      if (img) img.style.transform = scale;
+    const scale = `scale(${this.zoom})`;
+    const img = this.currentEl.querySelector('img');
+    if (img) img.style.transform = `${scale} ${translate}`
+  }
+
+  private sanitizeOffset(offset: IPoint) {
+    if (!this.currentEl) return offset
+    const img = this.currentEl.querySelector('img');
+    const elWidth = img.offsetWidth * this.getInitialZoomFactor() * this.zoom;
+    const elHeight = img.offsetHeight * this.getInitialZoomFactor() * this.zoom;
+    const maxX = elWidth - this.currentEl.offsetWidth + horizontalPadding;
+    const maxY = elHeight - this.currentEl.offsetHeight + verticalPadding;
+    const maxOffsetX = Math.max(maxX, 0);
+    const maxOffsetY = Math.max(maxY, 0);
+    const minOffsetX = Math.min(maxX, 0) - horizontalPadding;
+    const minOffsetY = Math.min(maxY, 0) - verticalPadding;
+
+    return {
+      x: Math.min(Math.max(offset.x, minOffsetX), maxOffsetX),
+      y: Math.min(Math.max(offset.y, minOffsetY), maxOffsetY)
     }
   }
 
-  private boundPan() {
-    const padding = 50 * this.zoom;
-    const imageWidth = this.currentEl.offsetWidth * this.zoom;
-    const imageHeight = this.currentEl.offsetHeight * this.zoom;
-    if ((this.offset.x - padding) < -imageWidth) {
-      this.offset.x = -imageWidth + padding;
-    }
+  private getInitialZoomFactor() {
+    if (!this.currentEl) return 1;
+    const img = this.currentEl.querySelector('img');
+    const xZoomFactor = this.currentEl.offsetWidth / img.offsetWidth
+    const yZoomFactor = this.currentEl.offsetHeight / img.offsetHeight
+    return Math.min(xZoomFactor, yZoomFactor)
+  }
 
-    if ((this.offset.x + padding) > imageWidth) {
-      this.offset.x = imageWidth - padding;
+  private setupInitialOffset() {
+    if (this._initialOffsetSetup) {
+      return
     }
+    this._initialOffsetSetup = true
+    this.computeInitialOffset()
+    this.offset.x = this.initialOffset.x
+    this.offset.y = this.initialOffset.y
+  }
 
-    if ((this.offset.y - padding) < -imageHeight) {
-      this.offset.y = -imageHeight + padding;
-     }
- 
-     if ((this.offset.y + padding) > imageHeight) {
-       this.offset.y = imageHeight - padding;
-     }
+  private computeInitialOffset() {
+    if (!this.currentEl) return;
+    const img = this.currentEl.querySelector('img');
+    this.initialOffset = {
+      x:
+        -Math.abs(
+          img.offsetWidth * this.getInitialZoomFactor() -
+            this.currentEl.offsetWidth
+        ) / 2,
+      y:
+        -Math.abs(
+          img.offsetHeight * this.getInitialZoomFactor() -
+            this.currentEl.offsetHeight
+        ) / 2,
+    }
   }
 
   private onSwipeEnd(isSwiping: boolean) {
-    if (isSwiping && this.currentEl) {
-      this.zoom = 1;
-      this.initialOffset = { x: 0, y: 0 };
-      this.offset = { x: 0, y: 0 };
-      this.currentEl.style.transform = 'translate(' + 0 + 'px,' + 0 + 'px)'
-      const img = this.currentEl.querySelector('img')
-      if (img) {
-        img.style.transform = 'scale(' + this.zoom + ', ' + this.zoom + ')'
-      }
-      this.currentEl = null;
-    }
+    if (isSwiping) this.zoomOut();
     this.updateControls();
+  }
+
+  private zoomOut() {
+    this.zoom = 1;
+    for (let item of this.imagesSlider.items) {
+      const control = (item as any).controls[0];
+      const image = control?.querySelector('img');
+      if (image) {
+        image.style.transform = `scale(1) translate(0px, 0px)`;
+      }
+    }
+    this.currentEl = null;
   }
 
   private handleSlideChange(index: number) {
@@ -375,9 +466,6 @@ export default class ScomImageGalleryModal extends Module {
 
   disconnectedCallback(): void {
     super.disconnectedCallback()
-    // this.imagesSlider.removeEventListener('mousewheel', (e: WheelEvent) =>
-    //   this.handleMouseWheel(e)
-    // )
   }
 
   render() {
@@ -419,7 +507,7 @@ export default class ScomImageGalleryModal extends Module {
               cursor='pointer'
               margin={{ top: '0.75rem' }}
               class='hovered-icon'
-              onClick={this.onClose}
+              onClick={() => this.onCloseClicked()}
             ></i-icon>
             <i-icon
               id='btnPrev'

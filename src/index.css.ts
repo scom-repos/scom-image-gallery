@@ -14,16 +14,15 @@ export const modalStyle = Styles.style({
   }
 })
 
-export const gridStyle = Styles.style({
-  $nest: {
-  }
-})
-
 export const carouselItemStyle = Styles.style({
   $nest: {
     'i-image': {
-      transformOrigin: '0% 0%',
-      position: 'absolute'
+      $nest: {
+        'img': {
+          transform: 'scale(1) translate(0px, 0px)',
+          transformOrigin: '0% 0%'
+        }
+      }
     }
   }
 })

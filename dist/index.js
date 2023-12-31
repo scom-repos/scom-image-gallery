@@ -7,7 +7,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 define("@scom/scom-image-gallery/index.css.ts", ["require", "exports", "@ijstech/components"], function (require, exports, components_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.carouselItemStyle = exports.gridStyle = exports.modalStyle = void 0;
+    exports.carouselItemStyle = exports.modalStyle = void 0;
     const Theme = components_1.Styles.Theme.ThemeVars;
     exports.modalStyle = components_1.Styles.style({
         $nest: {
@@ -21,14 +21,15 @@ define("@scom/scom-image-gallery/index.css.ts", ["require", "exports", "@ijstech
             }
         }
     });
-    exports.gridStyle = components_1.Styles.style({
-        $nest: {}
-    });
     exports.carouselItemStyle = components_1.Styles.style({
         $nest: {
             'i-image': {
-                transformOrigin: '0% 0%',
-                position: 'absolute'
+                $nest: {
+                    'img': {
+                        transform: 'scale(1) translate(0px, 0px)',
+                        transformOrigin: '0% 0%'
+                    }
+                }
             }
         }
     });
@@ -41,6 +42,11 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     const Theme = components_2.Styles.Theme.ThemeVars;
+    const verticalPadding = 0;
+    const horizontalPadding = 0;
+    const animationDuration = 300;
+    const maxZoom = 4;
+    const minZoom = 0.5;
     let ScomImageGalleryModal = class ScomImageGalleryModal extends components_2.Module {
         constructor(parent, options) {
             super(parent, options);
@@ -50,6 +56,10 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
             this.isMousedown = false;
             this.initialOffset = { x: 0, y: 0 };
             this.offset = { x: 0, y: 0 };
+            this.isDoubleTap = false;
+            this.lastCenter = null;
+            this.lastDist = 1;
+            this._initialOffsetSetup = false;
             this.onNext = this.onNext.bind(this);
             this.onPrev = this.onPrev.bind(this);
         }
@@ -88,27 +98,14 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
             this.imagesSlider.items = [...this._data.images].map((item) => {
                 return {
                     controls: [
-                        this.$render("i-vstack", { height: '100%', width: '100%', verticalAlignment: 'center', horizontalAlignment: 'center', overflow: 'hidden', position: 'relative' },
+                        this.$render("i-vstack", { height: '100%', width: '100%', horizontalAlignment: 'center', verticalAlignment: 'center', overflow: 'hidden', position: 'relative' },
                             this.$render("i-image", { display: 'block', width: '100%', height: 'auto', maxHeight: '100vh', url: item.url })),
                     ],
                 };
             });
             this.imagesSlider.activeSlide = this.activeSlide;
             this.updateControls();
-            // this.imagesSlider.addEventListener('mousewheel', (e: WheelEvent) => this.handleMouseWheel(e));
         }
-        // private handleMouseWheel(event: WheelEvent) {
-        //   event.preventDefault()
-        //   const target = event.target as HTMLElement
-        //   this.currentEl = target.closest('i-image') as Image
-        //   this.container = this.currentEl?.parentElement as Control
-        //   this.isMousedown = false;
-        //   this.zoom += (-event.deltaY / 4);
-        //   if (this.zoom < 0.5) { this.zoom = 0.5; }
-        //   if (this.zoom > 3) { this.zoom = 3; }
-        //   this.offset = { x: 0, y: 0 };
-        //   if (this.currentEl) this.updateImage();
-        // }
         onNext() {
             if (!this._data.images)
                 return;
@@ -126,10 +123,8 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
                 this.imagesSlider.activeSlide < this._data.images.length - 1;
             this.btnPrev.visible = this.imagesSlider.activeSlide > 0;
         }
-        onClose() {
+        onCloseClicked() {
             this.mdGallery.visible = false;
-            this.imagesSlider.activeSlide = 0;
-            this.updateControls();
         }
         onShowModal() {
             this.mdGallery.visible = true;
@@ -150,35 +145,34 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
                     history.replaceState(null, null, url);
                 }
             }
+            this.imagesSlider.activeSlide = 0;
+            this.zoomOut();
         }
         _handleMouseDown(event, stopPropagation) {
             this.isMousedown = true;
             if (event instanceof TouchEvent) {
                 const target = event.target;
                 this.currentEl = target.closest('i-image');
-                if (!this.currentEl)
-                    return false;
+                this.setupInitialOffset();
                 this.initialOffset = {
-                    x: event.touches[0].clientX,
-                    y: event.touches[0].clientY
+                    x: event.touches[0].pageX,
+                    y: event.touches[0].pageY
                 };
-                this.detectDoubleTap(event);
+                // this.detectDoubleTap(event);
             }
             return true;
         }
         _handleMouseMove(event, stopPropagation) {
             if (!this.isMousedown)
                 return;
-            if (event instanceof TouchEvent && this.currentEl && this.zoom > 1) {
-                const deltaX = (this.initialOffset.x - event.touches[0].clientX);
-                const deltaY = (this.initialOffset.y - event.touches[0].clientY);
-                this.addOffset({ x: deltaX, y: deltaY });
-                this.initialOffset = {
-                    x: event.touches[0].clientX,
-                    y: event.touches[0].clientY
-                };
-                this.updateImage();
-                return;
+            if (event instanceof TouchEvent) {
+                const target = event.target;
+                this.currentEl = target.closest('i-image');
+                if (this.currentEl) {
+                    const result = this.handleZoom(event);
+                    if (result)
+                        return;
+                }
             }
             return true;
         }
@@ -186,21 +180,82 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
             this.isMousedown = false;
             if (this.zoom > 1)
                 return;
+            this.lastDist = 0;
+            this.lastCenter = null;
+            this.zoomOut();
             return true;
         }
-        detectDoubleTap(event) {
-            const curTime = new Date().getTime();
-            const tapLen = curTime - this.lastTap;
-            if (tapLen < 500 && tapLen > 0) {
-                this.handleDoubleTap(event);
-                event.preventDefault();
+        handleZoom(event) {
+            event.preventDefault();
+            if (event.touches.length > 1) {
+                this.setupInitialOffset();
+                const [touch1, touch2] = event.touches;
+                const p1 = {
+                    x: touch1.pageX,
+                    y: touch1.pageY,
+                };
+                const p2 = {
+                    x: touch2.pageX,
+                    y: touch2.pageY,
+                };
+                if (!this.lastCenter) {
+                    this.lastCenter = this.getCenter(p1, p2);
+                    return;
+                }
+                const newCenter = this.getCenter(p1, p2);
+                const dist = this.getDistance(p1, p2);
+                if (!this.lastDist) {
+                    this.lastDist = dist;
+                }
+                this.scale(dist / this.lastDist, newCenter);
+                this.lastDist = dist;
+                this.lastCenter = newCenter;
             }
-            this.lastTap = curTime;
+            else if (this.zoom > 1) {
+                this.handleDrag(event);
+            }
+            else {
+                return;
+            }
+            return true;
         }
+        handleDrag(event) {
+            const deltaX = (this.initialOffset.x - event.touches[0].pageX);
+            const deltaY = (this.initialOffset.y - event.touches[0].pageY);
+            this.addOffset({
+                x: deltaX,
+                y: deltaY
+            });
+            this.initialOffset = {
+                x: event.touches[0].pageX,
+                y: event.touches[0].pageY
+            };
+            this.updateImage();
+        }
+        getDistance(p1, p2) {
+            return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+        }
+        getCenter(p1, p2) {
+            return {
+                x: (p1.x + p2.x) / 2,
+                y: (p1.y + p2.y) / 2,
+            };
+        }
+        // private detectDoubleTap(event: TouchEvent) {
+        //   const curTime = new Date().getTime()
+        //   const tapLen = curTime - this.lastTap
+        //   if (tapLen < 500 && tapLen > 0) {
+        //     this.handleDoubleTap(event)
+        //     // event.preventDefault();
+        //   } else {
+        //     this.isDoubleTap = false;
+        //   }
+        //   this.lastTap = curTime
+        // }
         scale(scale, center) {
             const oldZoom = this.zoom;
             this.zoom *= scale;
-            this.zoom = Math.max(0.5, Math.min(3.0, this.zoom));
+            this.zoom = Math.max(minZoom, Math.min(maxZoom, this.zoom));
             const _scale = this.zoom / oldZoom;
             this.addOffset({
                 x: (_scale - 1) * (center.x + this.offset.x),
@@ -239,20 +294,21 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
         }
         handleDoubleTap(event) {
             let center = {
-                x: event.touches[0].clientX,
-                y: event.touches[0].clientY
+                x: event.touches[0].pageX,
+                y: event.touches[0].pageY
             };
             const zoomFactor = this.zoom > 1 ? 1 : 2;
             const startZoomFactor = this.zoom;
             if (startZoomFactor > zoomFactor) {
                 center = this.getCurrentZoomCenter();
             }
+            this.isDoubleTap = true;
             const self = this;
             const updateProgress = function (progress) {
                 const newZoom = startZoomFactor + progress * (zoomFactor - startZoomFactor);
                 self.scale(newZoom / self.zoom, center);
             };
-            this.animateFn(300, updateProgress);
+            this.animateFn(animationDuration, updateProgress);
         }
         getCurrentZoomCenter() {
             const offsetLeft = this.offset.x - this.initialOffset.x;
@@ -261,53 +317,82 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
             const centerY = -1 * this.offset.y - offsetTop / (1 / this.zoom - 1);
             return {
                 x: centerX,
-                y: centerY,
+                y: centerY
             };
         }
         updateImage() {
-            this.boundPan();
-            const offsetX = -this.offset.x / this.zoom;
-            const offsetY = -this.offset.y / this.zoom;
+            if (!this.currentEl)
+                return;
+            this.offset = this.sanitizeOffset({ ...this.offset });
+            const zoomFactor = this.getInitialZoomFactor() * this.zoom;
+            const offsetX = -this.offset.x / zoomFactor;
+            const offsetY = -this.offset.y / zoomFactor;
             const translate = 'translate(' + offsetX + 'px,' + offsetY + 'px)';
-            const scale = 'scale(' + this.zoom + ', ' + this.zoom + ')';
-            if (this.currentEl) {
-                this.currentEl.style.webkitTransform = translate;
-                this.currentEl.style.transform = translate;
-                const img = this.currentEl.querySelector('img');
-                if (img)
-                    img.style.transform = scale;
-            }
+            const scale = `scale(${this.zoom})`;
+            const img = this.currentEl.querySelector('img');
+            if (img)
+                img.style.transform = `${scale} ${translate}`;
         }
-        boundPan() {
-            const padding = 50 * this.zoom;
-            const imageWidth = this.currentEl.offsetWidth * this.zoom;
-            const imageHeight = this.currentEl.offsetHeight * this.zoom;
-            if ((this.offset.x - padding) < -imageWidth) {
-                this.offset.x = -imageWidth + padding;
+        sanitizeOffset(offset) {
+            if (!this.currentEl)
+                return offset;
+            const img = this.currentEl.querySelector('img');
+            const elWidth = img.offsetWidth * this.getInitialZoomFactor() * this.zoom;
+            const elHeight = img.offsetHeight * this.getInitialZoomFactor() * this.zoom;
+            const maxX = elWidth - this.currentEl.offsetWidth + horizontalPadding;
+            const maxY = elHeight - this.currentEl.offsetHeight + verticalPadding;
+            const maxOffsetX = Math.max(maxX, 0);
+            const maxOffsetY = Math.max(maxY, 0);
+            const minOffsetX = Math.min(maxX, 0) - horizontalPadding;
+            const minOffsetY = Math.min(maxY, 0) - verticalPadding;
+            return {
+                x: Math.min(Math.max(offset.x, minOffsetX), maxOffsetX),
+                y: Math.min(Math.max(offset.y, minOffsetY), maxOffsetY)
+            };
+        }
+        getInitialZoomFactor() {
+            if (!this.currentEl)
+                return 1;
+            const img = this.currentEl.querySelector('img');
+            const xZoomFactor = this.currentEl.offsetWidth / img.offsetWidth;
+            const yZoomFactor = this.currentEl.offsetHeight / img.offsetHeight;
+            return Math.min(xZoomFactor, yZoomFactor);
+        }
+        setupInitialOffset() {
+            if (this._initialOffsetSetup) {
+                return;
             }
-            if ((this.offset.x + padding) > imageWidth) {
-                this.offset.x = imageWidth - padding;
-            }
-            if ((this.offset.y - padding) < -imageHeight) {
-                this.offset.y = -imageHeight + padding;
-            }
-            if ((this.offset.y + padding) > imageHeight) {
-                this.offset.y = imageHeight - padding;
-            }
+            this._initialOffsetSetup = true;
+            this.computeInitialOffset();
+            this.offset.x = this.initialOffset.x;
+            this.offset.y = this.initialOffset.y;
+        }
+        computeInitialOffset() {
+            if (!this.currentEl)
+                return;
+            const img = this.currentEl.querySelector('img');
+            this.initialOffset = {
+                x: -Math.abs(img.offsetWidth * this.getInitialZoomFactor() -
+                    this.currentEl.offsetWidth) / 2,
+                y: -Math.abs(img.offsetHeight * this.getInitialZoomFactor() -
+                    this.currentEl.offsetHeight) / 2,
+            };
         }
         onSwipeEnd(isSwiping) {
-            if (isSwiping && this.currentEl) {
-                this.zoom = 1;
-                this.initialOffset = { x: 0, y: 0 };
-                this.offset = { x: 0, y: 0 };
-                this.currentEl.style.transform = 'translate(' + 0 + 'px,' + 0 + 'px)';
-                const img = this.currentEl.querySelector('img');
-                if (img) {
-                    img.style.transform = 'scale(' + this.zoom + ', ' + this.zoom + ')';
-                }
-                this.currentEl = null;
-            }
+            if (isSwiping)
+                this.zoomOut();
             this.updateControls();
+        }
+        zoomOut() {
+            this.zoom = 1;
+            for (let item of this.imagesSlider.items) {
+                const control = item.controls[0];
+                const image = control?.querySelector('img');
+                if (image) {
+                    image.style.transform = `scale(1) translate(0px, 0px)`;
+                }
+            }
+            this.currentEl = null;
         }
         handleSlideChange(index) {
             if (this.onSlideChange)
@@ -315,9 +400,6 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
         }
         disconnectedCallback() {
             super.disconnectedCallback();
-            // this.imagesSlider.removeEventListener('mousewheel', (e: WheelEvent) =>
-            //   this.handleMouseWheel(e)
-            // )
         }
         render() {
             return (this.$render("i-modal", { id: 'mdGallery', showBackdrop: true, width: '100vw', height: '100vh', padding: { top: 0, right: 0, bottom: 0, left: 0 }, overflow: 'hidden', onOpen: this.onOpenModal, onClose: this.onCloseModal },
@@ -328,7 +410,7 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
                                 right: '0.5rem',
                                 bottom: '0.5rem',
                                 left: '0.5rem',
-                            }, name: 'times', fill: Theme.text.primary, width: '2.25rem', height: '2.25rem', background: { color: Theme.background.modal }, cursor: 'pointer', margin: { top: '0.75rem' }, class: 'hovered-icon', onClick: this.onClose }),
+                            }, name: 'times', fill: Theme.text.primary, width: '2.25rem', height: '2.25rem', background: { color: Theme.background.modal }, cursor: 'pointer', margin: { top: '0.75rem' }, class: 'hovered-icon', onClick: () => this.onCloseClicked() }),
                         this.$render("i-icon", { id: 'btnPrev', border: { radius: '50%' }, padding: {
                                 top: '0.5rem',
                                 right: '0.5rem',
@@ -372,7 +454,7 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
     ], ScomImageGalleryModal);
     exports.default = ScomImageGalleryModal;
 });
-define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components", "@scom/scom-image-gallery/index.css.ts"], function (require, exports, components_3, index_css_2) {
+define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components"], function (require, exports, components_3) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     let ScomImageGallery = class ScomImageGallery extends components_3.Module {
@@ -436,7 +518,6 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
         renderUI() {
             this.mdImages.setData({ images: this.images, activeSlide: 0 });
             this.gridImages.clearInnerHTML();
-            this.pnlRatio.padding = { bottom: '56.25%' };
             const length = this.images.length;
             this.gridImages.columnsPerRow = length > 1 ? 2 : 1;
             for (let i = 0; i < this.gridImages.columnsPerRow; i++) {
@@ -448,13 +529,18 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
                 const wrapper = this.gridImages.children[wrapperIndex];
                 const image = this.images[i];
                 if (wrapper) {
-                    const imageEl = this.$render("i-image", { url: image.url, width: '100%', height: '100%', opacity: 0, position: 'absolute', top: 0, left: 0, zIndex: -1 });
-                    wrapper.append(this.$render("i-panel", { background: { color: `url(${image.url}) center center / cover no-repeat` }, display: "block", stack: { grow: '1' }, width: '100%', height: '100%', cursor: 'pointer', onClick: () => this.selectImage(i) }), imageEl);
-                    if (this.gridImages.columnsPerRow === 1) {
-                        const heightPercent = (imageEl.offsetHeight * 100) / imageEl.offsetWidth;
+                    wrapper.append(this.$render("i-panel", { background: { color: `url(${image.url}) center center / cover no-repeat` }, display: "block", stack: { grow: '1' }, width: '100%', height: 'auto', cursor: 'pointer', onClick: () => this.selectImage(i) }));
+                }
+            }
+            if (this.gridImages.columnsPerRow === 1 && this.images?.length) {
+                const imgEl = new Image();
+                imgEl.src = this.images[0].url;
+                imgEl.onload = () => {
+                    const heightPercent = (imgEl.height * 100) / imgEl.width;
+                    if (!isNaN(heightPercent)) {
                         this.pnlRatio.padding = { bottom: `${heightPercent}%` };
                     }
-                }
+                };
             }
         }
         selectImage(index) {
@@ -593,9 +679,9 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
         }
         render() {
             return (this.$render("i-vstack", { id: "pnlGallery", border: { radius: 'inherit' }, width: '100%', overflow: 'hidden', position: 'relative' },
-                this.$render("i-panel", { id: "pnlRatio", width: "100%" }),
+                this.$render("i-panel", { id: "pnlRatio", width: "100%", height: '100%', padding: { bottom: '56.25%' } }),
                 this.$render("i-panel", { position: 'absolute', width: '100%', height: '100%', top: "0px", left: "0px", overflow: 'hidden' },
-                    this.$render("i-card-layout", { id: "gridImages", width: '100%', height: '100%', border: { radius: 'inherit' }, gap: { column: 2, row: 2 }, class: index_css_2.gridStyle }),
+                    this.$render("i-card-layout", { id: "gridImages", width: '100%', height: '100%', border: { radius: 'inherit' }, gap: { column: 2, row: 2 } }),
                     this.$render("i-scom-image-gallery--modal", { id: "mdImages", onSlideChange: this.onSlideChange }))));
         }
     };
