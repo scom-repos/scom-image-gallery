@@ -11,7 +11,7 @@ import {
   Image,
   application
 } from '@ijstech/components'
-import { carouselItemStyle, modalStyle } from './index.css'
+import { modalStyle, getTransformStyle } from './index.css'
 import { IImage, IImageGallery } from './interface'
 const Theme = Styles.Theme.ThemeVars
 
@@ -280,7 +280,7 @@ export default class ScomImageGalleryModal extends Module {
       x: event.touches[0].pageX,
       y: event.touches[0].pageY
     }
-    this.updateImage();
+    this.updateImage('drag');
   }
 
   private getDistance(p1: IPoint, p2: IPoint): number {
@@ -315,31 +315,31 @@ export default class ScomImageGalleryModal extends Module {
       x: (_scale - 1) * (center.x + this.offset.x),
       y: (_scale - 1) * (center.y + this.offset.y)
     });
-    this.updateImage();
+    this.updateImage('zoom');
   }
 
-  private animateFn(duration: number, framefn: any) {
-    const startTime = new Date().getTime();
-    const renderFrame = function () {
-      if (!this.inAnimation) {
-        return;
-      }
-      const frameTime = new Date().getTime() - startTime;
-      let progress = frameTime / duration;
-      if (frameTime >= duration) {
-        framefn(1);
-        this.inAnimation = false;
-        this.updateImage();
-      } else {
-        progress = -Math.cos(progress * Math.PI) / 2 + 0.5;
-        framefn(progress);
-        this.updateImage();
-        requestAnimationFrame(renderFrame);
-      }
-    }.bind(this);
-    this.inAnimation = true;
-    requestAnimationFrame(renderFrame);
-  }
+  // private animateFn(duration: number, framefn: any) {
+  //   const startTime = new Date().getTime();
+  //   const renderFrame = function () {
+  //     if (!this.inAnimation) {
+  //       return;
+  //     }
+  //     const frameTime = new Date().getTime() - startTime;
+  //     let progress = frameTime / duration;
+  //     if (frameTime >= duration) {
+  //       framefn(1);
+  //       this.inAnimation = false;
+  //       this.updateImage();
+  //     } else {
+  //       progress = -Math.cos(progress * Math.PI) / 2 + 0.5;
+  //       framefn(progress);
+  //       this.updateImage();
+  //       requestAnimationFrame(renderFrame);
+  //     }
+  //   }.bind(this);
+  //   this.inAnimation = true;
+  //   requestAnimationFrame(renderFrame);
+  // }
 
   private addOffset(offset: IPoint) {
     this.offset = {
@@ -378,16 +378,34 @@ export default class ScomImageGalleryModal extends Module {
   //   }
   // }
 
-  private updateImage() {
+  private updateImage(interaction: 'drag' | 'zoom') {
     if (!this.currentEl) return;
     this.offset = this.sanitizeOffset({...this.offset});
     const zoomFactor = this.getInitialZoomFactor() * this.zoom;
     const offsetX = -this.offset.x / zoomFactor;
     const offsetY = -this.offset.y / zoomFactor;
-    const translate = 'translate(' + offsetX + 'px,' + offsetY + 'px)';
-    const scale = `scale(${this.zoom})`;
-    const img = this.currentEl.querySelector('img');
-    if (img) img.style.transform = `${scale} ${translate}`
+    const image = this.currentEl.querySelector('img');
+    if (image) {
+      const translate = `translate(${offsetX}px, ${offsetY}px)`;
+      const scale = `scale(${this.zoom})`;
+      const transform = interaction === 'drag' ? `${scale} ${translate}` : `${translate} ${scale}`;
+      const origin = interaction === 'drag' ? '0% 0%' : `${-offsetX / 2}px ${-offsetY / 2}px`;
+      const styleClass = getTransformStyle(transform, origin);
+      this.setTargetStyle(image, 'transform', styleClass);
+    }
+  }
+
+  private removeTargetStyle(target: HTMLElement, propertyName: string) {
+    const style = this.propertyClassMap[propertyName];
+    if (style) target.classList.remove(style);
+  }
+
+  private setTargetStyle(target: HTMLElement, propertyName: string, value: any){
+    this.removeTargetStyle(target, propertyName);
+    if (value) {
+      this.propertyClassMap[propertyName] = value;
+      target.classList.add(value);
+    }
   }
 
   private sanitizeOffset(offset: IPoint) {
@@ -454,7 +472,7 @@ export default class ScomImageGalleryModal extends Module {
       const control = (item as any).controls[0];
       const image = control?.querySelector('img');
       if (image) {
-        image.style.transform = `scale(1) translate(0px, 0px)`;
+        this.removeTargetStyle(image, 'transform');
       }
     }
     this.currentEl = null;
@@ -550,7 +568,6 @@ export default class ScomImageGalleryModal extends Module {
                 properties: { maxWidth: '100%', indicators: true },
               },
             ]}
-            class={carouselItemStyle}
             onSlideChange={this.handleSlideChange}
           ></i-carousel-slider>
           <i-vstack
