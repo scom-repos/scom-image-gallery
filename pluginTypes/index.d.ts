@@ -1,7 +1,7 @@
 /// <amd-module name="@scom/scom-image-gallery/index.css.ts" />
 declare module "@scom/scom-image-gallery/index.css.ts" {
     export const modalStyle: string;
-    export const carouselItemStyle: string;
+    export const getTransformStyle: (value: string, origin: string) => string;
 }
 /// <amd-module name="@scom/scom-image-gallery/interface.ts" />
 declare module "@scom/scom-image-gallery/interface.ts" {
@@ -76,11 +76,10 @@ declare module "@scom/scom-image-gallery/galleryModal.tsx" {
         private getDistance;
         private getCenter;
         private scale;
-        private animateFn;
         private addOffset;
-        private handleDoubleTap;
-        private getCurrentZoomCenter;
         private updateImage;
+        private removeTargetStyle;
+        private setTargetStyle;
         private sanitizeOffset;
         private getInitialZoomFactor;
         private setupInitialOffset;

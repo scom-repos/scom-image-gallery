@@ -7,7 +7,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 define("@scom/scom-image-gallery/index.css.ts", ["require", "exports", "@ijstech/components"], function (require, exports, components_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.carouselItemStyle = exports.modalStyle = void 0;
+    exports.getTransformStyle = exports.modalStyle = void 0;
     const Theme = components_1.Styles.Theme.ThemeVars;
     exports.modalStyle = components_1.Styles.style({
         $nest: {
@@ -21,18 +21,13 @@ define("@scom/scom-image-gallery/index.css.ts", ["require", "exports", "@ijstech
             }
         }
     });
-    exports.carouselItemStyle = components_1.Styles.style({
-        $nest: {
-            'i-image': {
-                $nest: {
-                    'img': {
-                        transform: 'scale(1) translate(0px, 0px)',
-                        transformOrigin: '0% 0%'
-                    }
-                }
-            }
-        }
-    });
+    const getTransformStyle = (value, origin) => {
+        return components_1.Styles.style({
+            transform: `${value} !important`,
+            transformOrigin: `${origin} !important`
+        });
+    };
+    exports.getTransformStyle = getTransformStyle;
 });
 define("@scom/scom-image-gallery/interface.ts", ["require", "exports"], function (require, exports) {
     "use strict";
@@ -230,7 +225,7 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
                 x: event.touches[0].pageX,
                 y: event.touches[0].pageY
             };
-            this.updateImage();
+            this.updateImage('drag');
         }
         getDistance(p1, p2) {
             return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
@@ -261,77 +256,92 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
                 x: (_scale - 1) * (center.x + this.offset.x),
                 y: (_scale - 1) * (center.y + this.offset.y)
             });
-            this.updateImage();
+            this.updateImage('zoom');
         }
-        animateFn(duration, framefn) {
-            const startTime = new Date().getTime();
-            const renderFrame = function () {
-                if (!this.inAnimation) {
-                    return;
-                }
-                const frameTime = new Date().getTime() - startTime;
-                let progress = frameTime / duration;
-                if (frameTime >= duration) {
-                    framefn(1);
-                    this.inAnimation = false;
-                    this.updateImage();
-                }
-                else {
-                    progress = -Math.cos(progress * Math.PI) / 2 + 0.5;
-                    framefn(progress);
-                    this.updateImage();
-                    requestAnimationFrame(renderFrame);
-                }
-            }.bind(this);
-            this.inAnimation = true;
-            requestAnimationFrame(renderFrame);
-        }
+        // private animateFn(duration: number, framefn: any) {
+        //   const startTime = new Date().getTime();
+        //   const renderFrame = function () {
+        //     if (!this.inAnimation) {
+        //       return;
+        //     }
+        //     const frameTime = new Date().getTime() - startTime;
+        //     let progress = frameTime / duration;
+        //     if (frameTime >= duration) {
+        //       framefn(1);
+        //       this.inAnimation = false;
+        //       this.updateImage();
+        //     } else {
+        //       progress = -Math.cos(progress * Math.PI) / 2 + 0.5;
+        //       framefn(progress);
+        //       this.updateImage();
+        //       requestAnimationFrame(renderFrame);
+        //     }
+        //   }.bind(this);
+        //   this.inAnimation = true;
+        //   requestAnimationFrame(renderFrame);
+        // }
         addOffset(offset) {
             this.offset = {
                 x: this.offset.x + offset.x,
                 y: this.offset.y + offset.y
             };
         }
-        handleDoubleTap(event) {
-            let center = {
-                x: event.touches[0].pageX,
-                y: event.touches[0].pageY
-            };
-            const zoomFactor = this.zoom > 1 ? 1 : 2;
-            const startZoomFactor = this.zoom;
-            if (startZoomFactor > zoomFactor) {
-                center = this.getCurrentZoomCenter();
-            }
-            this.isDoubleTap = true;
-            const self = this;
-            const updateProgress = function (progress) {
-                const newZoom = startZoomFactor + progress * (zoomFactor - startZoomFactor);
-                self.scale(newZoom / self.zoom, center);
-            };
-            this.animateFn(animationDuration, updateProgress);
-        }
-        getCurrentZoomCenter() {
-            const offsetLeft = this.offset.x - this.initialOffset.x;
-            const centerX = -1 * this.offset.x - offsetLeft / (1 / this.zoom - 1);
-            const offsetTop = this.offset.y - this.initialOffset.y;
-            const centerY = -1 * this.offset.y - offsetTop / (1 / this.zoom - 1);
-            return {
-                x: centerX,
-                y: centerY
-            };
-        }
-        updateImage() {
+        // private handleDoubleTap(event: TouchEvent) {
+        //   let center = {
+        //     x: event.touches[0].pageX,
+        //     y: event.touches[0].pageY
+        //   };
+        //   const zoomFactor = this.zoom > 1 ? 1 : 2;
+        //   const startZoomFactor = this.zoom;
+        //   if (startZoomFactor > zoomFactor) {
+        //     center = this.getCurrentZoomCenter();
+        //   }
+        //   this.isDoubleTap = true;
+        //   const self = this;
+        //   const updateProgress = function(progress: number) {
+        //     const newZoom = startZoomFactor + progress * (zoomFactor - startZoomFactor);
+        //     self.scale(newZoom / self.zoom, center);
+        //   }
+        //   this.animateFn(animationDuration, updateProgress);
+        // }
+        // private getCurrentZoomCenter() {
+        //   const offsetLeft = this.offset.x - this.initialOffset.x
+        //   const centerX = -1 * this.offset.x - offsetLeft / (1 / this.zoom - 1)
+        //   const offsetTop = this.offset.y - this.initialOffset.y
+        //   const centerY = -1 * this.offset.y - offsetTop / (1 / this.zoom - 1)
+        //   return {
+        //     x: centerX,
+        //     y: centerY
+        //   }
+        // }
+        updateImage(interaction) {
             if (!this.currentEl)
                 return;
             this.offset = this.sanitizeOffset({ ...this.offset });
             const zoomFactor = this.getInitialZoomFactor() * this.zoom;
             const offsetX = -this.offset.x / zoomFactor;
             const offsetY = -this.offset.y / zoomFactor;
-            const translate = 'translate(' + offsetX + 'px,' + offsetY + 'px)';
-            const scale = `scale(${this.zoom})`;
-            const img = this.currentEl.querySelector('img');
-            if (img)
-                img.style.transform = `${scale} ${translate}`;
+            const image = this.currentEl.querySelector('img');
+            if (image) {
+                const translate = `translate(${offsetX}px, ${offsetY}px)`;
+                const scale = `scale(${this.zoom})`;
+                const transform = interaction === 'drag' ? `${scale} ${translate}` : `${translate} ${scale}`;
+                const origin = interaction === 'drag' ? '0% 0%' : `${-offsetX / 2}px ${-offsetY / 2}px`;
+                const styleClass = (0, index_css_1.getTransformStyle)(transform, origin);
+                this.setTargetStyle(image, 'transform', styleClass);
+            }
+        }
+        removeTargetStyle(target, propertyName) {
+            const style = this.propertyClassMap[propertyName];
+            if (style)
+                target.classList.remove(style);
+        }
+        setTargetStyle(target, propertyName, value) {
+            this.removeTargetStyle(target, propertyName);
+            if (value) {
+                this.propertyClassMap[propertyName] = value;
+                target.classList.add(value);
+            }
         }
         sanitizeOffset(offset) {
             if (!this.currentEl)
@@ -389,7 +399,7 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
                 const control = item.controls[0];
                 const image = control?.querySelector('img');
                 if (image) {
-                    image.style.transform = `scale(1) translate(0px, 0px)`;
+                    this.removeTargetStyle(image, 'transform');
                 }
             }
             this.currentEl = null;
@@ -427,7 +437,7 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
                                 maxWidth: '768px',
                                 properties: { maxWidth: '100%', indicators: true },
                             },
-                        ], class: index_css_1.carouselItemStyle, onSlideChange: this.handleSlideChange }),
+                        ], onSlideChange: this.handleSlideChange }),
                     this.$render("i-vstack", { verticalAlignment: 'space-between', horizontalAlignment: 'end', height: '50%', padding: { right: '0.75rem', left: '0.75rem' }, position: 'absolute', right: '0px', top: '0px', zIndex: 100 },
                         this.$render("i-icon", { opacity: 0, border: { radius: '50%' }, padding: {
                                 top: '0.5rem',

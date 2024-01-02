@@ -14,15 +14,9 @@ export const modalStyle = Styles.style({
   }
 })
 
-export const carouselItemStyle = Styles.style({
-  $nest: {
-    'i-image': {
-      $nest: {
-        'img': {
-          transform: 'scale(1) translate(0px, 0px)',
-          transformOrigin: '0% 0%'
-        }
-      }
-    }
-  }
-})
+export const getTransformStyle = (value: string, origin: string) => {
+  return Styles.style({
+    transform: `${value} !important`,
+    transformOrigin: `${origin} !important`
+  })
+}
