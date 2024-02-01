@@ -46,14 +46,11 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
         constructor(parent, options) {
             super(parent, options);
             this.zoom = 1;
-            this.lastTap = 0;
-            this.inAnimation = false;
             this.isMousedown = false;
             this.initialOffset = { x: 0, y: 0 };
             this.offset = { x: 0, y: 0 };
-            this.isDoubleTap = false;
             this.lastCenter = null;
-            this.lastDist = 1;
+            this.lastDist = 0;
             this._initialOffsetSetup = false;
             this.onNext = this.onNext.bind(this);
             this.onPrev = this.onPrev.bind(this);
@@ -202,6 +199,8 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
                 if (!this.lastDist) {
                     this.lastDist = dist;
                 }
+                // const parentHeight = this.currentEl?.offsetHeight;
+                // const value = this.lastDist === 1 && parentHeight ? 1 + dist / parentHeight : dist / this.lastDist;
                 this.scale(dist / this.lastDist, newCenter);
                 this.lastDist = dist;
                 this.lastCenter = newCenter;
@@ -236,17 +235,6 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
                 y: (p1.y + p2.y) / 2,
             };
         }
-        // private detectDoubleTap(event: TouchEvent) {
-        //   const curTime = new Date().getTime()
-        //   const tapLen = curTime - this.lastTap
-        //   if (tapLen < 500 && tapLen > 0) {
-        //     this.handleDoubleTap(event)
-        //     // event.preventDefault();
-        //   } else {
-        //     this.isDoubleTap = false;
-        //   }
-        //   this.lastTap = curTime
-        // }
         scale(scale, center) {
             const oldZoom = this.zoom;
             this.zoom *= scale;
@@ -258,62 +246,12 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
             });
             this.updateImage('zoom');
         }
-        // private animateFn(duration: number, framefn: any) {
-        //   const startTime = new Date().getTime();
-        //   const renderFrame = function () {
-        //     if (!this.inAnimation) {
-        //       return;
-        //     }
-        //     const frameTime = new Date().getTime() - startTime;
-        //     let progress = frameTime / duration;
-        //     if (frameTime >= duration) {
-        //       framefn(1);
-        //       this.inAnimation = false;
-        //       this.updateImage();
-        //     } else {
-        //       progress = -Math.cos(progress * Math.PI) / 2 + 0.5;
-        //       framefn(progress);
-        //       this.updateImage();
-        //       requestAnimationFrame(renderFrame);
-        //     }
-        //   }.bind(this);
-        //   this.inAnimation = true;
-        //   requestAnimationFrame(renderFrame);
-        // }
         addOffset(offset) {
             this.offset = {
                 x: this.offset.x + offset.x,
                 y: this.offset.y + offset.y
             };
         }
-        // private handleDoubleTap(event: TouchEvent) {
-        //   let center = {
-        //     x: event.touches[0].pageX,
-        //     y: event.touches[0].pageY
-        //   };
-        //   const zoomFactor = this.zoom > 1 ? 1 : 2;
-        //   const startZoomFactor = this.zoom;
-        //   if (startZoomFactor > zoomFactor) {
-        //     center = this.getCurrentZoomCenter();
-        //   }
-        //   this.isDoubleTap = true;
-        //   const self = this;
-        //   const updateProgress = function(progress: number) {
-        //     const newZoom = startZoomFactor + progress * (zoomFactor - startZoomFactor);
-        //     self.scale(newZoom / self.zoom, center);
-        //   }
-        //   this.animateFn(animationDuration, updateProgress);
-        // }
-        // private getCurrentZoomCenter() {
-        //   const offsetLeft = this.offset.x - this.initialOffset.x
-        //   const centerX = -1 * this.offset.x - offsetLeft / (1 / this.zoom - 1)
-        //   const offsetTop = this.offset.y - this.initialOffset.y
-        //   const centerY = -1 * this.offset.y - offsetTop / (1 / this.zoom - 1)
-        //   return {
-        //     x: centerX,
-        //     y: centerY
-        //   }
-        // }
         updateImage(interaction) {
             if (!this.currentEl)
                 return;

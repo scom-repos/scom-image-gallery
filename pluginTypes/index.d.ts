@@ -36,12 +36,9 @@ declare module "@scom/scom-image-gallery/galleryModal.tsx" {
     export default class ScomImageGalleryModal extends Module {
         private _data;
         private zoom;
-        private lastTap;
-        private inAnimation;
         private isMousedown;
         private initialOffset;
         private offset;
-        private isDoubleTap;
         private lastCenter;
         private lastDist;
         private _initialOffsetSetup;
