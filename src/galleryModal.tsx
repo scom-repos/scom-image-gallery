@@ -49,14 +49,11 @@ declare global {
 export default class ScomImageGalleryModal extends Module {
   private _data: IImageGalleryMd
   private zoom: number = 1
-  private lastTap: number = 0
-  private inAnimation: boolean = false
   private isMousedown: boolean = false;
   private initialOffset: IPoint = { x: 0, y: 0 }
   private offset: IPoint = { x: 0, y: 0 }
-  private isDoubleTap: boolean = false
   private lastCenter: IPoint | null = null;
-  private lastDist: number = 1;
+  private lastDist: number = 0;
   private _initialOffsetSetup: boolean = false;
 
   private currentEl: Image
@@ -255,6 +252,8 @@ export default class ScomImageGalleryModal extends Module {
         this.lastDist = dist;
       }
 
+      // const parentHeight = this.currentEl?.offsetHeight;
+      // const value = this.lastDist === 1 && parentHeight ? 1 + dist / parentHeight : dist / this.lastDist;
       this.scale(dist / this.lastDist, newCenter);
 
       this.lastDist = dist;
@@ -294,18 +293,6 @@ export default class ScomImageGalleryModal extends Module {
     };
   }
 
-  // private detectDoubleTap(event: TouchEvent) {
-  //   const curTime = new Date().getTime()
-  //   const tapLen = curTime - this.lastTap
-  //   if (tapLen < 500 && tapLen > 0) {
-  //     this.handleDoubleTap(event)
-  //     // event.preventDefault();
-  //   } else {
-  //     this.isDoubleTap = false;
-  //   }
-  //   this.lastTap = curTime
-  // }
-
   private scale(scale: number, center: IPoint) {
     const oldZoom = this.zoom;
     this.zoom *= scale
@@ -318,65 +305,12 @@ export default class ScomImageGalleryModal extends Module {
     this.updateImage('zoom');
   }
 
-  // private animateFn(duration: number, framefn: any) {
-  //   const startTime = new Date().getTime();
-  //   const renderFrame = function () {
-  //     if (!this.inAnimation) {
-  //       return;
-  //     }
-  //     const frameTime = new Date().getTime() - startTime;
-  //     let progress = frameTime / duration;
-  //     if (frameTime >= duration) {
-  //       framefn(1);
-  //       this.inAnimation = false;
-  //       this.updateImage();
-  //     } else {
-  //       progress = -Math.cos(progress * Math.PI) / 2 + 0.5;
-  //       framefn(progress);
-  //       this.updateImage();
-  //       requestAnimationFrame(renderFrame);
-  //     }
-  //   }.bind(this);
-  //   this.inAnimation = true;
-  //   requestAnimationFrame(renderFrame);
-  // }
-
   private addOffset(offset: IPoint) {
     this.offset = {
       x: this.offset.x + offset.x,
       y: this.offset.y + offset.y
     };
   }
-
-  // private handleDoubleTap(event: TouchEvent) {
-  //   let center = {
-  //     x: event.touches[0].pageX,
-  //     y: event.touches[0].pageY
-  //   };
-  //   const zoomFactor = this.zoom > 1 ? 1 : 2;
-  //   const startZoomFactor = this.zoom;
-  //   if (startZoomFactor > zoomFactor) {
-  //     center = this.getCurrentZoomCenter();
-  //   }
-  //   this.isDoubleTap = true;
-  //   const self = this;
-  //   const updateProgress = function(progress: number) {
-  //     const newZoom = startZoomFactor + progress * (zoomFactor - startZoomFactor);
-  //     self.scale(newZoom / self.zoom, center);
-  //   }
-  //   this.animateFn(animationDuration, updateProgress);
-  // }
-
-  // private getCurrentZoomCenter() {
-  //   const offsetLeft = this.offset.x - this.initialOffset.x
-  //   const centerX = -1 * this.offset.x - offsetLeft / (1 / this.zoom - 1)
-  //   const offsetTop = this.offset.y - this.initialOffset.y
-  //   const centerY = -1 * this.offset.y - offsetTop / (1 / this.zoom - 1)
-  //   return {
-  //     x: centerX,
-  //     y: centerY
-  //   }
-  // }
 
   private updateImage(interaction: 'drag' | 'zoom') {
     if (!this.currentEl) return;
