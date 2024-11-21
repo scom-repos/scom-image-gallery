@@ -1,11 +1,9 @@
 import {
   Module,
   customModule,
-  IDataSchema,
   Container,
   ControlElement,
   customElements,
-  IUISchema,
   CardLayout,
   Control,
   VStack,
@@ -13,6 +11,7 @@ import {
 } from '@ijstech/components'
 import ScomImageGalleryModal from './galleryModal'
 import { IImage, IImageGallery } from './interface';
+import { Model } from './model';
 
 interface ScomImageGalleryElement extends ControlElement {
   lazyLoad?: boolean;
@@ -31,23 +30,22 @@ declare global {
 @customModule
 @customElements('i-scom-image-gallery')
 export default class ScomImageGallery extends Module {
-  private _data: IImageGallery
+  private model: Model;
 
   private mdImages: ScomImageGalleryModal
   private gridImages: CardLayout
   private pnlGallery: VStack
   private pnlRatio: Panel;
-  private _currHash: string;
 
   tag: any = {}
 
   constructor(parent?: Container, options?: any) {
-    super(parent, options)
+    super(parent, options);
+    this.initModel();
   }
 
   init() {
     super.init()
-    this._currHash = location.hash;
     this.setTag({ width: '100%', height: 'auto' })
     const lazyLoad = this.getAttribute('lazyLoad', true, false)
     if (!lazyLoad) {
@@ -69,17 +67,17 @@ export default class ScomImageGallery extends Module {
   }
 
   get images() {
-    return this._data.images
+    return this.model.images;
   }
   set images(value: IImage[]) {
-    this._data.images = value
+    this.model.images = value;
   }
 
   get hash() {
-    return this._data.hash;
+    return this.model.hash;
   }
   set hash(value: string) {
-    this._data.hash = value;
+    this.model.hash = value;
   }
 
   get selectedImage() {
@@ -90,15 +88,50 @@ export default class ScomImageGallery extends Module {
     this.mdImages.onShowModal();
   }
 
-  private getData() {
-    return this._data
+  getConfigurators() {
+    this.initModel();
+    return this.model.getConfigurators();
+  }
+
+  getData() {
+    return this.model.getData();
   }
 
   private setData(value: IImageGallery) {
-    const { selectedImage, ...rest } = value;
-    this._data = rest;
-    this.renderUI()
+    this.model.setData(value);
+  }
+
+  getTag() {
+    return this.tag;
+  }
+
+  private async setTag(value: any) {
+    this.model.setData(value);
+  }
+
+  private initModel() {
+    if (!this.model) {
+      this.model = new Model(this, {
+        updateWidget: this.updateWidget.bind(this),
+        updateWidgetTag: this.updateWidgetTag.bind(this)
+      });
+    }
+  }
+
+  private updateWidget(selectedImage: number) {
+    this.renderUI();
     if (selectedImage != null) this.selectedImage = selectedImage;
+  }
+
+  private updateWidgetTag() {
+    const { width, border } = this.tag;
+    if (this.pnlGallery) {
+      this.pnlGallery.width = width;
+      this.pnlGallery.height = 'auto';
+      if (border) {
+        this.pnlGallery.border = border;
+      }
+    }
   }
 
   private renderUI() {
@@ -117,9 +150,9 @@ export default class ScomImageGallery extends Module {
       if (wrapper) {
         wrapper.append(
           <i-panel
-            background={{color: `url(${image.url}) center center / cover no-repeat`}}
+            background={{ color: `url(${image.url}) center center / cover no-repeat` }}
             display="block"
-            stack={{grow: '1'}}
+            stack={{ grow: '1' }}
             width={'100%'} height={'auto'}
             cursor='pointer'
             onClick={() => this.selectImage(i)}
@@ -134,7 +167,7 @@ export default class ScomImageGallery extends Module {
       imgEl.onload = () => {
         const heightPercent = (imgEl.height * 100) / imgEl.width;
         if (!isNaN(heightPercent)) {
-          this.pnlRatio.padding = {bottom: `${heightPercent}%`};
+          this.pnlRatio.padding = { bottom: `${heightPercent}%` };
         }
       }
     }
@@ -142,149 +175,18 @@ export default class ScomImageGallery extends Module {
 
   private selectImage(index: number) {
     this.selectedImage = index;
-    history.pushState(null, null, `${this.hash || this._currHash}/photo/${index + 1}`);
+    history.pushState(null, null, `${this.hash}/photo/${index + 1}`);
   }
 
   private onSlideChange(index: number) {
-    history.replaceState(null, null, `${this.hash || this._currHash}/photo/${index + 1}`);
-  }
-
-  getConfigurators() {
-    return [
-      {
-        name: 'Builder Configurator',
-        target: 'Builders',
-        getActions: () => {
-          return this._getActions('Builders')
-        },
-        getData: this.getData.bind(this),
-        setData: this.setData.bind(this),
-        getTag: this.getTag.bind(this),
-        setTag: this.setTag.bind(this),
-      },
-      {
-        name: 'Emdedder Configurator',
-        target: 'Embedders',
-        getData: this.getData.bind(this),
-        setData: this.setData.bind(this),
-        getTag: this.getTag.bind(this),
-        setTag: this.setTag.bind(this),
-      },
-      {
-        name: 'Editor',
-        target: 'Editor',
-        getActions: () => {
-          return this._getActions('Editor')
-        },
-        getData: this.getData.bind(this),
-        setData: this.setData.bind(this),
-        getTag: this.getTag.bind(this),
-        setTag: this.setTag.bind(this),
-      },
-    ]
-  }
-
-  private _getActions(target?: string) {
-    return [
-      {
-        name: 'Widget Settings',
-        icon: 'edit',
-        ...this.getWidgetSchemas(),
-      },
-    ]
-  }
-
-  private getWidgetSchemas(): any {
-    const propertiesSchema: IDataSchema = {
-      type: 'object',
-      properties: {
-        pt: {
-          title: 'Top',
-          type: 'number',
-        },
-        pb: {
-          title: 'Bottom',
-          type: 'number',
-        },
-        pl: {
-          title: 'Left',
-          type: 'number',
-        },
-        pr: {
-          title: 'Right',
-          type: 'number',
-        }
-      },
-    }
-    const themesSchema: IUISchema = {
-      type: 'VerticalLayout',
-      elements: [
-        {
-          type: 'HorizontalLayout',
-          elements: [
-            {
-              type: 'Group',
-              label: 'Padding (px)',
-              elements: [
-                {
-                  type: 'VerticalLayout',
-                  elements: [
-                    {
-                      type: 'HorizontalLayout',
-                      elements: [
-                        {
-                          type: 'Control',
-                          scope: '#/properties/pt',
-                        },
-                        {
-                          type: 'Control',
-                          scope: '#/properties/pb',
-                        },
-                        {
-                          type: 'Control',
-                          scope: '#/properties/pl',
-                        },
-                        {
-                          type: 'Control',
-                          scope: '#/properties/pr',
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        }
-      ],
-    }
-    return {
-      userInputDataSchema: propertiesSchema,
-      userInputUISchema: themesSchema,
-    }
-  }
-
-  private getTag() {
-    return this.tag
-  }
-
-  private async setTag(value: any) {
-    this.tag = value
-    const { width, border } = this.tag
-    if (this.pnlGallery) {
-      this.pnlGallery.width = width
-      this.pnlGallery.height = 'auto'
-      if (border) {
-        this.pnlGallery.border = border;
-      }8
-    }
+    history.replaceState(null, null, `${this.hash}/photo/${index + 1}`);
   }
 
   render() {
     return (
       <i-vstack
         id="pnlGallery"
-        border={{radius: 'inherit'}}
+        border={{ radius: 'inherit' }}
         width={'100%'}
         overflow={'hidden'}
         position='relative'
@@ -292,7 +194,7 @@ export default class ScomImageGallery extends Module {
         <i-panel
           id="pnlRatio"
           width="100%" height={'100%'}
-          padding={{bottom: '56.25%'}}
+          padding={{ bottom: '56.25%' }}
         ></i-panel>
         <i-panel
           position='absolute'
@@ -303,8 +205,8 @@ export default class ScomImageGallery extends Module {
           <i-card-layout
             id="gridImages"
             width={'100%'} height={'100%'}
-            border={{radius: 'inherit'}}
-            gap={{column: 2, row: 2}}
+            border={{ radius: 'inherit' }}
+            gap={{ column: 2, row: 2 }}
           ></i-card-layout>
           <i-scom-image-gallery--modal
             id="mdImages"

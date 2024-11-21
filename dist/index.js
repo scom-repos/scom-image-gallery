@@ -402,37 +402,20 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
     ], ScomImageGalleryModal);
     exports.default = ScomImageGalleryModal;
 });
-define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components"], function (require, exports, components_3) {
+define("@scom/scom-image-gallery/model.ts", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    let ScomImageGallery = class ScomImageGallery extends components_3.Module {
-        constructor(parent, options) {
-            super(parent, options);
-            this.tag = {};
-        }
-        init() {
-            super.init();
+    exports.Model = void 0;
+    class Model {
+        constructor(module, options) {
+            this.options = {
+                updateWidget: (selectedImage) => { },
+                updateWidgetTag: (value) => { }
+            };
+            this._data = { images: [] };
+            this.module = module;
             this._currHash = location.hash;
-            this.setTag({ width: '100%', height: 'auto' });
-            const lazyLoad = this.getAttribute('lazyLoad', true, false);
-            if (!lazyLoad) {
-                const images = this.getAttribute('images', true);
-                const hash = this.getAttribute('hash', true);
-                const selectedImage = this.getAttribute('selectedImage', true);
-                let data = {};
-                if (images)
-                    data.images = images;
-                if (hash)
-                    data.hash = hash;
-                this.setData(data);
-                if (selectedImage != null)
-                    this.selectedImage = selectedImage;
-            }
-        }
-        static async create(options, parent) {
-            let self = new this(parent, options);
-            await self.ready();
-            return self;
+            this.options = options;
         }
         get images() {
             return this._data.images;
@@ -441,62 +424,25 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components"]
             this._data.images = value;
         }
         get hash() {
-            return this._data.hash;
+            return this._data.hash || this._currHash;
         }
         set hash(value) {
             this._data.hash = value;
         }
-        get selectedImage() {
-            return this.mdImages.activeSlide;
-        }
-        set selectedImage(index) {
-            this.mdImages.activeSlide = index;
-            this.mdImages.onShowModal();
-        }
         getData() {
             return this._data;
         }
-        setData(value) {
+        async setData(value) {
             const { selectedImage, ...rest } = value;
             this._data = rest;
-            this.renderUI();
-            if (selectedImage != null)
-                this.selectedImage = selectedImage;
+            this.options.updateWidget(selectedImage);
         }
-        renderUI() {
-            this.mdImages.setData({ images: this.images, activeSlide: 0 });
-            this.gridImages.clearInnerHTML();
-            const length = this.images.length;
-            this.gridImages.columnsPerRow = length > 1 ? 2 : 1;
-            for (let i = 0; i < this.gridImages.columnsPerRow; i++) {
-                const wrapper = this.$render("i-vstack", { gap: 2, position: 'relative' });
-                this.gridImages.appendChild(wrapper);
-            }
-            for (let i = 0; i < length; i++) {
-                const wrapperIndex = i % this.gridImages.columnsPerRow;
-                const wrapper = this.gridImages.children[wrapperIndex];
-                const image = this.images[i];
-                if (wrapper) {
-                    wrapper.append(this.$render("i-panel", { background: { color: `url(${image.url}) center center / cover no-repeat` }, display: "block", stack: { grow: '1' }, width: '100%', height: 'auto', cursor: 'pointer', onClick: () => this.selectImage(i) }));
-                }
-            }
-            if (this.gridImages.columnsPerRow === 1 && this.images?.length) {
-                const imgEl = new Image();
-                imgEl.src = this.images[0].url;
-                imgEl.onload = () => {
-                    const heightPercent = (imgEl.height * 100) / imgEl.width;
-                    if (!isNaN(heightPercent)) {
-                        this.pnlRatio.padding = { bottom: `${heightPercent}%` };
-                    }
-                };
-            }
+        getTag() {
+            return this.module.tag;
         }
-        selectImage(index) {
-            this.selectedImage = index;
-            history.pushState(null, null, `${this.hash || this._currHash}/photo/${index + 1}`);
-        }
-        onSlideChange(index) {
-            history.replaceState(null, null, `${this.hash || this._currHash}/photo/${index + 1}`);
+        async setTag(value) {
+            this.module.tag = value;
+            this.options.updateWidgetTag(value);
         }
         getConfigurators() {
             return [
@@ -529,7 +475,7 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components"]
                     setData: this.setData.bind(this),
                     getTag: this.getTag.bind(this),
                     setTag: this.setTag.bind(this),
-                },
+                }
             ];
         }
         _getActions(target) {
@@ -545,21 +491,19 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components"]
             const propertiesSchema = {
                 type: 'object',
                 properties: {
-                    pt: {
-                        title: 'Top',
-                        type: 'number',
-                    },
-                    pb: {
-                        title: 'Bottom',
-                        type: 'number',
-                    },
-                    pl: {
-                        title: 'Left',
-                        type: 'number',
-                    },
-                    pr: {
-                        title: 'Right',
-                        type: 'number',
+                    images: {
+                        type: 'array',
+                        required: true,
+                        items: {
+                            type: 'object',
+                            properties: {
+                                url: {
+                                    title: 'URL',
+                                    type: 'string',
+                                    required: true
+                                }
+                            }
+                        }
                     }
                 },
             };
@@ -567,41 +511,8 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components"]
                 type: 'VerticalLayout',
                 elements: [
                     {
-                        type: 'HorizontalLayout',
-                        elements: [
-                            {
-                                type: 'Group',
-                                label: 'Padding (px)',
-                                elements: [
-                                    {
-                                        type: 'VerticalLayout',
-                                        elements: [
-                                            {
-                                                type: 'HorizontalLayout',
-                                                elements: [
-                                                    {
-                                                        type: 'Control',
-                                                        scope: '#/properties/pt',
-                                                    },
-                                                    {
-                                                        type: 'Control',
-                                                        scope: '#/properties/pb',
-                                                    },
-                                                    {
-                                                        type: 'Control',
-                                                        scope: '#/properties/pl',
-                                                    },
-                                                    {
-                                                        type: 'Control',
-                                                        scope: '#/properties/pr',
-                                                    },
-                                                ],
-                                            },
-                                        ],
-                                    },
-                                ],
-                            },
-                        ],
+                        type: 'Control',
+                        scope: '#/properties/images'
                     }
                 ],
             };
@@ -610,11 +521,90 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components"]
                 userInputUISchema: themesSchema,
             };
         }
+    }
+    exports.Model = Model;
+});
+define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components", "@scom/scom-image-gallery/model.ts"], function (require, exports, components_3, model_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    let ScomImageGallery = class ScomImageGallery extends components_3.Module {
+        constructor(parent, options) {
+            super(parent, options);
+            this.tag = {};
+            this.initModel();
+        }
+        init() {
+            super.init();
+            this.setTag({ width: '100%', height: 'auto' });
+            const lazyLoad = this.getAttribute('lazyLoad', true, false);
+            if (!lazyLoad) {
+                const images = this.getAttribute('images', true);
+                const hash = this.getAttribute('hash', true);
+                const selectedImage = this.getAttribute('selectedImage', true);
+                let data = {};
+                if (images)
+                    data.images = images;
+                if (hash)
+                    data.hash = hash;
+                this.setData(data);
+                if (selectedImage != null)
+                    this.selectedImage = selectedImage;
+            }
+        }
+        static async create(options, parent) {
+            let self = new this(parent, options);
+            await self.ready();
+            return self;
+        }
+        get images() {
+            return this.model.images;
+        }
+        set images(value) {
+            this.model.images = value;
+        }
+        get hash() {
+            return this.model.hash;
+        }
+        set hash(value) {
+            this.model.hash = value;
+        }
+        get selectedImage() {
+            return this.mdImages.activeSlide;
+        }
+        set selectedImage(index) {
+            this.mdImages.activeSlide = index;
+            this.mdImages.onShowModal();
+        }
+        getConfigurators() {
+            this.initModel();
+            return this.model.getConfigurators();
+        }
+        getData() {
+            return this.model.getData();
+        }
+        setData(value) {
+            this.model.setData(value);
+        }
         getTag() {
             return this.tag;
         }
         async setTag(value) {
-            this.tag = value;
+            this.model.setData(value);
+        }
+        initModel() {
+            if (!this.model) {
+                this.model = new model_1.Model(this, {
+                    updateWidget: this.updateWidget.bind(this),
+                    updateWidgetTag: this.updateWidgetTag.bind(this)
+                });
+            }
+        }
+        updateWidget(selectedImage) {
+            this.renderUI();
+            if (selectedImage != null)
+                this.selectedImage = selectedImage;
+        }
+        updateWidgetTag() {
             const { width, border } = this.tag;
             if (this.pnlGallery) {
                 this.pnlGallery.width = width;
@@ -622,8 +612,42 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components"]
                 if (border) {
                     this.pnlGallery.border = border;
                 }
-                8;
             }
+        }
+        renderUI() {
+            this.mdImages.setData({ images: this.images, activeSlide: 0 });
+            this.gridImages.clearInnerHTML();
+            const length = this.images.length;
+            this.gridImages.columnsPerRow = length > 1 ? 2 : 1;
+            for (let i = 0; i < this.gridImages.columnsPerRow; i++) {
+                const wrapper = this.$render("i-vstack", { gap: 2, position: 'relative' });
+                this.gridImages.appendChild(wrapper);
+            }
+            for (let i = 0; i < length; i++) {
+                const wrapperIndex = i % this.gridImages.columnsPerRow;
+                const wrapper = this.gridImages.children[wrapperIndex];
+                const image = this.images[i];
+                if (wrapper) {
+                    wrapper.append(this.$render("i-panel", { background: { color: `url(${image.url}) center center / cover no-repeat` }, display: "block", stack: { grow: '1' }, width: '100%', height: 'auto', cursor: 'pointer', onClick: () => this.selectImage(i) }));
+                }
+            }
+            if (this.gridImages.columnsPerRow === 1 && this.images?.length) {
+                const imgEl = new Image();
+                imgEl.src = this.images[0].url;
+                imgEl.onload = () => {
+                    const heightPercent = (imgEl.height * 100) / imgEl.width;
+                    if (!isNaN(heightPercent)) {
+                        this.pnlRatio.padding = { bottom: `${heightPercent}%` };
+                    }
+                };
+            }
+        }
+        selectImage(index) {
+            this.selectedImage = index;
+            history.pushState(null, null, `${this.hash}/photo/${index + 1}`);
+        }
+        onSlideChange(index) {
+            history.replaceState(null, null, `${this.hash}/photo/${index + 1}`);
         }
         render() {
             return (this.$render("i-vstack", { id: "pnlGallery", border: { radius: 'inherit' }, width: '100%', overflow: 'hidden', position: 'relative' },

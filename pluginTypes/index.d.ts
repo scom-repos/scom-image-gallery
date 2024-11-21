@@ -1,3 +1,4 @@
+/// <reference path="@ijstech/components/index.d.ts" />
 /// <amd-module name="@scom/scom-image-gallery/index.css.ts" />
 declare module "@scom/scom-image-gallery/index.css.ts" {
     export const modalStyle: string;
@@ -88,48 +89,55 @@ declare module "@scom/scom-image-gallery/galleryModal.tsx" {
         render(): any;
     }
 }
-/// <amd-module name="@scom/scom-image-gallery" />
-declare module "@scom/scom-image-gallery" {
-    import { Module, Container, ControlElement } from '@ijstech/components';
-    import { IImage } from "@scom/scom-image-gallery/interface.ts";
-    interface ScomImageGalleryElement extends ControlElement {
-        lazyLoad?: boolean;
-        images: IImage[];
-        hash?: string;
+/// <amd-module name="@scom/scom-image-gallery/model.ts" />
+declare module "@scom/scom-image-gallery/model.ts" {
+    import { IUISchema, Module } from '@ijstech/components';
+    import { IImage, IImageGallery } from "@scom/scom-image-gallery/interface.ts";
+    interface IModelOptions {
+        updateWidget: (selectedImage: number) => void;
+        updateWidgetTag: (value: any) => void;
     }
-    global {
-        namespace JSX {
-            interface IntrinsicElements {
-                ['i-scom-image-gallery']: ScomImageGalleryElement;
-            }
-        }
-    }
-    export default class ScomImageGallery extends Module {
+    export class Model {
+        private module;
+        private options;
         private _data;
-        private mdImages;
-        private gridImages;
-        private pnlGallery;
-        private pnlRatio;
         private _currHash;
-        tag: any;
-        constructor(parent?: Container, options?: any);
-        init(): void;
-        static create(options?: ScomImageGalleryElement, parent?: Container): Promise<ScomImageGallery>;
+        constructor(module: Module, options: IModelOptions);
         get images(): IImage[];
         set images(value: IImage[]);
         get hash(): string;
         set hash(value: string);
-        get selectedImage(): number;
-        set selectedImage(index: number);
-        private getData;
-        private setData;
-        private renderUI;
-        private selectImage;
-        private onSlideChange;
+        getData(): IImageGallery;
+        setData(value: IImageGallery): Promise<void>;
+        getTag(): any;
+        setTag(value: any): Promise<void>;
         getConfigurators(): ({
             name: string;
             target: string;
-            getActions: () => any[];
+            getActions: () => {
+                userInputDataSchema: {
+                    type: string;
+                    properties: {
+                        images: {
+                            type: string;
+                            required: boolean;
+                            items: {
+                                type: string;
+                                properties: {
+                                    url: {
+                                        title: string;
+                                        type: string;
+                                        required: boolean;
+                                    };
+                                };
+                            };
+                        };
+                    };
+                };
+                userInputUISchema: IUISchema;
+                name: string;
+                icon: string;
+            }[];
             getData: any;
             setData: any;
             getTag: any;
@@ -145,8 +153,90 @@ declare module "@scom/scom-image-gallery" {
         })[];
         private _getActions;
         private getWidgetSchemas;
-        private getTag;
+    }
+}
+/// <amd-module name="@scom/scom-image-gallery" />
+declare module "@scom/scom-image-gallery" {
+    import { Module, Container, ControlElement } from '@ijstech/components';
+    import { IImage, IImageGallery } from "@scom/scom-image-gallery/interface.ts";
+    interface ScomImageGalleryElement extends ControlElement {
+        lazyLoad?: boolean;
+        images: IImage[];
+        hash?: string;
+    }
+    global {
+        namespace JSX {
+            interface IntrinsicElements {
+                ['i-scom-image-gallery']: ScomImageGalleryElement;
+            }
+        }
+    }
+    export default class ScomImageGallery extends Module {
+        private model;
+        private mdImages;
+        private gridImages;
+        private pnlGallery;
+        private pnlRatio;
+        tag: any;
+        constructor(parent?: Container, options?: any);
+        init(): void;
+        static create(options?: ScomImageGalleryElement, parent?: Container): Promise<ScomImageGallery>;
+        get images(): IImage[];
+        set images(value: IImage[]);
+        get hash(): string;
+        set hash(value: string);
+        get selectedImage(): number;
+        set selectedImage(index: number);
+        getConfigurators(): ({
+            name: string;
+            target: string;
+            getActions: () => {
+                userInputDataSchema: {
+                    type: string;
+                    properties: {
+                        images: {
+                            type: string;
+                            required: boolean;
+                            items: {
+                                type: string;
+                                properties: {
+                                    url: {
+                                        title: string;
+                                        type: string;
+                                        required: boolean;
+                                    };
+                                };
+                            };
+                        };
+                    };
+                };
+                userInputUISchema: import("@ijstech/components").IUISchema;
+                name: string;
+                icon: string;
+            }[];
+            getData: any;
+            setData: any;
+            getTag: any;
+            setTag: any;
+        } | {
+            name: string;
+            target: string;
+            getData: any;
+            setData: any;
+            getTag: any;
+            setTag: any;
+            getActions?: undefined;
+        })[];
+        getData(): IImageGallery;
+        private setData;
+        getTag(): any;
         private setTag;
+        private initModel;
+        private updateWidget;
+        private updateWidgetTag;
+        private renderUI;
+        private selectImage;
+        private onSlideChange;
         render(): any;
     }
 }
