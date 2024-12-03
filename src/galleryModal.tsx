@@ -47,7 +47,9 @@ declare global {
 @customModule
 @customElements('i-scom-image-gallery--modal')
 export default class ScomImageGalleryModal extends Module {
-  private _data: IImageGalleryMd
+  private _data: IImageGalleryMd = {
+    images: []
+  }
   private zoom: number = 1
   private isMousedown: boolean = false;
   private initialOffset: IPoint = { x: 0, y: 0 }
@@ -86,10 +88,10 @@ export default class ScomImageGalleryModal extends Module {
   }
 
   get images() {
-    return this._data.images
+    return this._data.images || []
   }
   set images(value: IImage[]) {
-    this._data.images = value
+    this._data.images = value || []
   }
 
   get activeSlide(): number {
@@ -109,7 +111,7 @@ export default class ScomImageGalleryModal extends Module {
   }
 
   private renderUI() {
-    this.imagesSlider.items = [...this._data.images].map((item) => {
+    this.imagesSlider.items = [...this.images].map((item) => {
       return {
         controls: [
           <i-vstack
@@ -136,20 +138,20 @@ export default class ScomImageGalleryModal extends Module {
   }
 
   private onNext() {
-    if (!this._data.images) return
+    if (!this.images.length) return
     this.imagesSlider.next()
     this.updateControls()
   }
 
   private onPrev() {
-    if (!this._data.images) return
+    if (!this.images.length) return
     this.imagesSlider.prev()
     this.updateControls()
   }
 
   private updateControls() {
     this.btnNext.visible =
-      this.imagesSlider.activeSlide < this._data.images.length - 1
+      this.imagesSlider.activeSlide < this.images.length - 1
     this.btnPrev.visible = this.imagesSlider.activeSlide > 0
   }
 

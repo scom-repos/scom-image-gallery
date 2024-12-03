@@ -22,10 +22,10 @@ export class Model {
   }
 
   get images() {
-    return this._data.images
+    return this._data.images || []
   }
   set images(value: IImage[]) {
-    this._data.images = value
+    this._data.images = value || []
   }
 
   get hash() {

@@ -45,6 +45,9 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
     let ScomImageGalleryModal = class ScomImageGalleryModal extends components_2.Module {
         constructor(parent, options) {
             super(parent, options);
+            this._data = {
+                images: []
+            };
             this.zoom = 1;
             this.isMousedown = false;
             this.initialOffset = { x: 0, y: 0 };
@@ -68,10 +71,10 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
             return self;
         }
         get images() {
-            return this._data.images;
+            return this._data.images || [];
         }
         set images(value) {
-            this._data.images = value;
+            this._data.images = value || [];
         }
         get activeSlide() {
             return this._data.activeSlide ?? 0;
@@ -87,7 +90,7 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
             this.renderUI();
         }
         renderUI() {
-            this.imagesSlider.items = [...this._data.images].map((item) => {
+            this.imagesSlider.items = [...this.images].map((item) => {
                 return {
                     controls: [
                         this.$render("i-vstack", { height: '100%', width: '100%', horizontalAlignment: 'center', verticalAlignment: 'center', overflow: 'hidden', position: 'relative' },
@@ -99,20 +102,20 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
             this.updateControls();
         }
         onNext() {
-            if (!this._data.images)
+            if (!this.images.length)
                 return;
             this.imagesSlider.next();
             this.updateControls();
         }
         onPrev() {
-            if (!this._data.images)
+            if (!this.images.length)
                 return;
             this.imagesSlider.prev();
             this.updateControls();
         }
         updateControls() {
             this.btnNext.visible =
-                this.imagesSlider.activeSlide < this._data.images.length - 1;
+                this.imagesSlider.activeSlide < this.images.length - 1;
             this.btnPrev.visible = this.imagesSlider.activeSlide > 0;
         }
         onCloseClicked() {
@@ -418,10 +421,10 @@ define("@scom/scom-image-gallery/model.ts", ["require", "exports"], function (re
             this.options = options;
         }
         get images() {
-            return this._data.images;
+            return this._data.images || [];
         }
         set images(value) {
-            this._data.images = value;
+            this._data.images = value || [];
         }
         get hash() {
             return this._data.hash || this._currHash;
