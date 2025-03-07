@@ -90,6 +90,8 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
             this.renderUI();
         }
         renderUI() {
+            if (!this.imagesSlider)
+                return;
             this.imagesSlider.items = [...this.images].map((item) => {
                 return {
                     controls: [
@@ -336,7 +338,7 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
         }
         zoomOut() {
             this.zoom = 1;
-            for (let item of this.imagesSlider.items) {
+            for (let item of (this.imagesSlider?.items || [])) {
                 const control = item.controls[0];
                 const image = control?.querySelector('img');
                 if (image) {
@@ -431,6 +433,12 @@ define("@scom/scom-image-gallery/model.ts", ["require", "exports"], function (re
         }
         set hash(value) {
             this._data.hash = value;
+        }
+        get columnsPerRow() {
+            return this._data.columnsPerRow;
+        }
+        set columnsPerRow(value) {
+            this._data.columnsPerRow = value;
         }
         getData() {
             return this._data;
@@ -571,12 +579,24 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
         set hash(value) {
             this.model.hash = value;
         }
+        get columnsPerRow() {
+            return this.model.columnsPerRow;
+        }
+        set columnsPerRow(value) {
+            this.model.columnsPerRow = value;
+        }
         get selectedImage() {
             return this.mdImages.activeSlide;
         }
         set selectedImage(index) {
-            this.mdImages.activeSlide = index;
-            this.mdImages.onShowModal();
+            const image = this.images[index];
+            if (image?.link) {
+                window.open(image.link, '_blank');
+            }
+            else {
+                this.mdImages.activeSlide = index;
+                this.mdImages.onShowModal();
+            }
         }
         getConfigurators() {
             this.initModel();
@@ -608,10 +628,16 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
                 this.selectedImage = selectedImage;
         }
         updateWidgetTag() {
-            const { width, border } = this.tag;
+            const { width, border, maxWidth, margin } = this.tag;
             if (this.pnlGallery) {
                 this.pnlGallery.width = width;
                 this.pnlGallery.height = 'auto';
+                if (maxWidth !== undefined) {
+                    this.pnlGallery.maxWidth = maxWidth;
+                }
+                if (margin) {
+                    this.pnlGallery.margin = margin;
+                }
                 if (border) {
                     this.pnlGallery.border = border;
                 }
@@ -621,7 +647,7 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
             this.mdImages.setData({ images: this.images, activeSlide: 0 });
             this.gridImages.clearInnerHTML();
             const length = this.images.length;
-            this.gridImages.columnsPerRow = length > 1 ? 2 : 1;
+            this.gridImages.columnsPerRow = this.columnsPerRow || (length > 1 ? 2 : 1);
             for (let i = 0; i < this.gridImages.columnsPerRow; i++) {
                 const wrapper = this.$render("i-vstack", { gap: 2, position: 'relative' });
                 this.gridImages.appendChild(wrapper);
@@ -647,7 +673,10 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
         }
         selectImage(index) {
             this.selectedImage = index;
-            history.pushState(null, null, `${this.hash}/photo/${index + 1}`);
+            const image = this.images[index];
+            if (!image?.link) {
+                history.pushState(null, null, `${this.hash}/photo/${index + 1}`);
+            }
         }
         onSlideChange(index) {
             history.replaceState(null, null, `${this.hash}/photo/${index + 1}`);

@@ -35,6 +35,14 @@ export class Model {
     this._data.hash = value;
   }
 
+  get columnsPerRow() {
+    return this._data.columnsPerRow;
+  }
+
+  set columnsPerRow(value: number) {
+    this._data.columnsPerRow = value;
+  }
+
   getData() {
     return this._data;
   }
