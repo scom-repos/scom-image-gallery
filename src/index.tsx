@@ -17,6 +17,7 @@ interface ScomImageGalleryElement extends ControlElement {
   lazyLoad?: boolean;
   images: IImage[];
   hash?: string;
+  columnsPerRow?: number;
 }
 
 declare global {
@@ -80,12 +81,24 @@ export default class ScomImageGallery extends Module {
     this.model.hash = value;
   }
 
+  get columnsPerRow() {
+    return this.model.columnsPerRow;
+  }
+  set columnsPerRow(value: number) {
+    this.model.columnsPerRow = value;
+  }
+
   get selectedImage() {
     return this.mdImages.activeSlide;
   }
   set selectedImage(index: number) {
-    this.mdImages.activeSlide = index;
-    this.mdImages.onShowModal();
+    const image = this.images[index];
+    if (image?.link) {
+      window.open(image.link, '_blank');
+    } else {
+      this.mdImages.activeSlide = index;
+      this.mdImages.onShowModal();
+    }
   }
 
   getConfigurators() {
@@ -124,10 +137,16 @@ export default class ScomImageGallery extends Module {
   }
 
   private updateWidgetTag() {
-    const { width, border } = this.tag;
+    const { width, border, maxWidth, margin } = this.tag;
     if (this.pnlGallery) {
       this.pnlGallery.width = width;
       this.pnlGallery.height = 'auto';
+      if (maxWidth !== undefined) {
+        this.pnlGallery.maxWidth = maxWidth;
+      }
+      if (margin) {
+        this.pnlGallery.margin = margin;
+      }
       if (border) {
         this.pnlGallery.border = border;
       }
@@ -138,7 +157,7 @@ export default class ScomImageGallery extends Module {
     this.mdImages.setData({ images: this.images, activeSlide: 0 });
     this.gridImages.clearInnerHTML();
     const length = this.images.length;
-    this.gridImages.columnsPerRow = length > 1 ? 2 : 1;
+    this.gridImages.columnsPerRow = this.columnsPerRow || (length > 1 ? 2 : 1);
     for (let i = 0; i < this.gridImages.columnsPerRow; i++) {
       const wrapper = <i-vstack gap={2} position='relative'></i-vstack>;
       this.gridImages.appendChild(wrapper);
@@ -175,7 +194,10 @@ export default class ScomImageGallery extends Module {
 
   private selectImage(index: number) {
     this.selectedImage = index;
-    history.pushState(null, null, `${this.hash}/photo/${index + 1}`);
+    const image = this.images[index];
+    if (!image?.link) {
+      history.pushState(null, null, `${this.hash}/photo/${index + 1}`);
+    }
   }
 
   private onSlideChange(index: number) {

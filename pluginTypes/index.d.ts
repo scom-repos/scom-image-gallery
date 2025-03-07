@@ -8,11 +8,13 @@ declare module "@scom/scom-image-gallery/index.css.ts" {
 declare module "@scom/scom-image-gallery/interface.ts" {
     export interface IImage {
         url: string;
+        link?: string;
     }
     export interface IImageGallery {
         images: IImage[];
         hash?: string;
         selectedImage?: number;
+        columnsPerRow?: number;
     }
 }
 /// <amd-module name="@scom/scom-image-gallery/galleryModal.tsx" />
@@ -107,6 +109,8 @@ declare module "@scom/scom-image-gallery/model.ts" {
         set images(value: IImage[]);
         get hash(): string;
         set hash(value: string);
+        get columnsPerRow(): number;
+        set columnsPerRow(value: number);
         getData(): IImageGallery;
         setData(value: IImageGallery): Promise<void>;
         getTag(): any;
@@ -163,6 +167,7 @@ declare module "@scom/scom-image-gallery" {
         lazyLoad?: boolean;
         images: IImage[];
         hash?: string;
+        columnsPerRow?: number;
     }
     global {
         namespace JSX {
@@ -185,6 +190,8 @@ declare module "@scom/scom-image-gallery" {
         set images(value: IImage[]);
         get hash(): string;
         set hash(value: string);
+        get columnsPerRow(): number;
+        set columnsPerRow(value: number);
         get selectedImage(): number;
         set selectedImage(index: number);
         getConfigurators(): ({

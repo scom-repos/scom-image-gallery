@@ -111,6 +111,7 @@ export default class ScomImageGalleryModal extends Module {
   }
 
   private renderUI() {
+    if (!this.imagesSlider) return;
     this.imagesSlider.items = [...this.images].map((item) => {
       return {
         controls: [
@@ -404,7 +405,7 @@ export default class ScomImageGalleryModal extends Module {
 
   private zoomOut() {
     this.zoom = 1;
-    for (let item of this.imagesSlider.items) {
+    for (let item of (this.imagesSlider?.items || [])) {
       const control = (item as any).controls[0];
       const image = control?.querySelector('img');
       if (image) {
