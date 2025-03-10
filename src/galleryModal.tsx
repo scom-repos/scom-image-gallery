@@ -432,6 +432,7 @@ export default class ScomImageGalleryModal extends Module {
         height={'100vh'}
         padding={{ top: 0, right: 0, bottom: 0, left: 0 }}
         overflow={'hidden'}
+        visible={false}
         onOpen={this.onOpenModal} 
         onClose={this.onCloseModal}
       >

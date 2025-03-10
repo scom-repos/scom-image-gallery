@@ -355,7 +355,7 @@ define("@scom/scom-image-gallery/galleryModal.tsx", ["require", "exports", "@ijs
             super.disconnectedCallback();
         }
         render() {
-            return (this.$render("i-modal", { id: 'mdGallery', showBackdrop: true, width: '100vw', height: '100vh', padding: { top: 0, right: 0, bottom: 0, left: 0 }, overflow: 'hidden', onOpen: this.onOpenModal, onClose: this.onCloseModal },
+            return (this.$render("i-modal", { id: 'mdGallery', showBackdrop: true, width: '100vw', height: '100vh', padding: { top: 0, right: 0, bottom: 0, left: 0 }, overflow: 'hidden', visible: false, onOpen: this.onOpenModal, onClose: this.onCloseModal },
                 this.$render("i-panel", { width: '100vw', height: '100vh', class: index_css_1.modalStyle },
                     this.$render("i-vstack", { verticalAlignment: 'space-between', horizontalAlignment: 'start', height: '50%', padding: { right: '0.75rem', left: '0.75rem' }, position: 'absolute', left: '0px', top: '0px', zIndex: 100 },
                         this.$render("i-icon", { border: { radius: '50%' }, padding: {
