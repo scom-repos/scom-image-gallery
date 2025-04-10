@@ -159,6 +159,14 @@ declare module "@scom/scom-image-gallery/model.ts" {
         private getWidgetSchemas;
     }
 }
+/// <amd-module name="@scom/scom-image-gallery/utils.ts" />
+declare module "@scom/scom-image-gallery/utils.ts" {
+    const splitValue: (value: string | number) => {
+        value: number;
+        unit: string;
+    };
+    export { splitValue };
+}
 /// <amd-module name="@scom/scom-image-gallery" />
 declare module "@scom/scom-image-gallery" {
     import { Module, Container, ControlElement } from '@ijstech/components';

@@ -454,6 +454,7 @@ define("@scom/scom-image-gallery/model.ts", ["require", "exports"], function (re
         async setTag(value) {
             this.module.tag = value;
             this.options.updateWidgetTag(value);
+            this.options.updateWidget(null);
         }
         getConfigurators() {
             return [
@@ -535,7 +536,27 @@ define("@scom/scom-image-gallery/model.ts", ["require", "exports"], function (re
     }
     exports.Model = Model;
 });
-define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components", "@scom/scom-image-gallery/model.ts"], function (require, exports, components_3, model_1) {
+define("@scom/scom-image-gallery/utils.ts", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.splitValue = void 0;
+    ///<amd-module name='@scom/scom-image-gallery/utils.ts'/> 
+    const splitValue = (value) => {
+        let num = value;
+        let unit = '';
+        if (isNaN(Number(value)) && typeof value === 'string') {
+            const matches = /(\d+)(\D+)/g.exec(value);
+            if (matches) {
+                const [, height, _unit] = matches;
+                num = height;
+                unit = _unit;
+            }
+        }
+        return { value: Number(num), unit };
+    };
+    exports.splitValue = splitValue;
+});
+define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components", "@scom/scom-image-gallery/model.ts", "@scom/scom-image-gallery/utils.ts"], function (require, exports, components_3, model_1, utils_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     let ScomImageGallery = class ScomImageGallery extends components_3.Module {
@@ -612,7 +633,7 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
             return this.tag;
         }
         async setTag(value) {
-            this.model.setData(value);
+            this.model.setTag(value);
         }
         initModel() {
             if (!this.model) {
@@ -628,7 +649,7 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
                 this.selectedImage = selectedImage;
         }
         updateWidgetTag() {
-            const { width, border, maxWidth, margin } = this.tag;
+            const { width, border, maxWidth, margin, gap } = this.tag;
             if (this.pnlGallery) {
                 this.pnlGallery.width = width;
                 this.pnlGallery.height = 'auto';
@@ -642,23 +663,35 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
                     this.pnlGallery.border = border;
                 }
             }
+            if (this.gridImages && gap) {
+                this.gridImages.gap = gap;
+            }
         }
         renderUI() {
+            const { image: imageStyles, gap } = this.tag;
             this.mdImages.setData({ images: this.images, activeSlide: 0 });
             this.gridImages.clearInnerHTML();
             const length = this.images.length;
             this.gridImages.columnsPerRow = this.columnsPerRow || (length > 1 ? 2 : 1);
             for (let i = 0; i < this.gridImages.columnsPerRow; i++) {
-                const wrapper = this.$render("i-vstack", { gap: 2, position: 'relative' });
+                const wrapper = this.$render("i-vstack", { gap: gap?.row || 2, position: 'relative' });
                 this.gridImages.appendChild(wrapper);
             }
+            const hasImageStyle = imageStyles?.width || imageStyles?.height;
             for (let i = 0; i < length; i++) {
                 const wrapperIndex = i % this.gridImages.columnsPerRow;
                 const wrapper = this.gridImages.children[wrapperIndex];
                 const image = this.images[i];
                 if (wrapper) {
-                    wrapper.append(this.$render("i-panel", { background: { color: `url(${image.url}) center center / cover no-repeat` }, display: "block", stack: { grow: '1' }, width: '100%', height: 'auto', cursor: 'pointer', onClick: () => this.selectImage(i) }));
+                    wrapper.append(this.$render("i-panel", { background: { color: `url(${image.url}) center center / cover no-repeat` }, display: "block", stack: hasImageStyle ? undefined : { grow: '1' }, width: imageStyles?.width || '100%', height: imageStyles?.height || 'auto', cursor: 'pointer', onClick: () => this.selectImage(i) }));
                 }
+            }
+            if (imageStyles?.height) {
+                // TODO: fix
+                const rows = this.gridImages?.children?.[0]?.children?.length;
+                const height = (0, utils_1.splitValue)(imageStyles.height);
+                const space = (0, utils_1.splitValue)(gap?.row || 2);
+                this.pnlGallery.maxHeight = (height.value * rows + space.value) + (height.unit || space.unit);
             }
             if (this.gridImages.columnsPerRow === 1 && this.images?.length) {
                 const imgEl = new Image();
