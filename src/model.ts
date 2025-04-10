@@ -60,6 +60,7 @@ export class Model {
   async setTag(value: any) {
     this.module.tag = value;
     this.options.updateWidgetTag(value);
+    this.options.updateWidget(null);
   }
 
   getConfigurators() {

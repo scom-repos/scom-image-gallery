@@ -12,6 +12,7 @@ import {
 import ScomImageGalleryModal from './galleryModal'
 import { IImage, IImageGallery } from './interface';
 import { Model } from './model';
+import { splitValue } from './utils';
 
 interface ScomImageGalleryElement extends ControlElement {
   lazyLoad?: boolean;
@@ -119,7 +120,7 @@ export default class ScomImageGallery extends Module {
   }
 
   private async setTag(value: any) {
-    this.model.setData(value);
+    this.model.setTag(value);
   }
 
   private initModel() {
@@ -137,7 +138,7 @@ export default class ScomImageGallery extends Module {
   }
 
   private updateWidgetTag() {
-    const { width, border, maxWidth, margin } = this.tag;
+    const { width, border, maxWidth, margin, gap } = this.tag;
     if (this.pnlGallery) {
       this.pnlGallery.width = width;
       this.pnlGallery.height = 'auto';
@@ -151,17 +152,26 @@ export default class ScomImageGallery extends Module {
         this.pnlGallery.border = border;
       }
     }
+
+    if (this.gridImages && gap) {
+      this.gridImages.gap = gap;
+    }
   }
 
   private renderUI() {
+    const {image: imageStyles, gap} = this.tag;
     this.mdImages.setData({ images: this.images, activeSlide: 0 });
     this.gridImages.clearInnerHTML();
     const length = this.images.length;
     this.gridImages.columnsPerRow = this.columnsPerRow || (length > 1 ? 2 : 1);
+
     for (let i = 0; i < this.gridImages.columnsPerRow; i++) {
-      const wrapper = <i-vstack gap={2} position='relative'></i-vstack>;
+      const wrapper = <i-vstack gap={gap?.row || 2} position='relative'></i-vstack>;
       this.gridImages.appendChild(wrapper);
     }
+
+    const hasImageStyle = imageStyles?.width || imageStyles?.height;
+
     for (let i = 0; i < length; i++) {
       const wrapperIndex = i % this.gridImages.columnsPerRow;
       const wrapper = this.gridImages.children[wrapperIndex] as Control;
@@ -171,13 +181,22 @@ export default class ScomImageGallery extends Module {
           <i-panel
             background={{ color: `url(${image.url}) center center / cover no-repeat` }}
             display="block"
-            stack={{ grow: '1' }}
-            width={'100%'} height={'auto'}
+            stack={hasImageStyle ? undefined : { grow: '1' }}
+            width={imageStyles?.width || '100%'} height={imageStyles?.height || 'auto'}
             cursor='pointer'
             onClick={() => this.selectImage(i)}
           ></i-panel>
         );
       }
+    }
+
+    if (imageStyles?.height) {
+      // TODO: fix
+      const rows = this.gridImages?.children?.[0]?.children?.length;
+      const height = splitValue(imageStyles.height);
+      const space = splitValue(gap?.row || 2);
+
+      this.pnlGallery.maxHeight = (height.value * rows + space.value) + (height.unit || space.unit);
     }
 
     if (this.gridImages.columnsPerRow === 1 && this.images?.length) {
