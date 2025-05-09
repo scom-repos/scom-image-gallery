@@ -144,6 +144,9 @@ export default class ScomImageGallery extends Module {
       this.pnlGallery.height = 'auto';
       if (maxWidth !== undefined) {
         this.pnlGallery.maxWidth = maxWidth;
+        if (!width) {
+          this.pnlGallery.width = maxWidth;
+        }
       }
       if (margin) {
         this.pnlGallery.margin = margin;
