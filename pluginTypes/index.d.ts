@@ -111,6 +111,10 @@ declare module "@scom/scom-image-gallery/model.ts" {
         set hash(value: string);
         get columnsPerRow(): number;
         set columnsPerRow(value: number);
+        get data(): IImageGallery;
+        set data(value: IImageGallery);
+        get tag(): any;
+        set tag(value: any);
         getData(): IImageGallery;
         setData(value: IImageGallery): Promise<void>;
         getTag(): any;
@@ -202,6 +206,8 @@ declare module "@scom/scom-image-gallery" {
         set columnsPerRow(value: number);
         get selectedImage(): number;
         set selectedImage(index: number);
+        get data(): IImageGallery;
+        set data(value: IImageGallery);
         getConfigurators(): ({
             name: string;
             target: string;

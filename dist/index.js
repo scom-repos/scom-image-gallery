@@ -440,6 +440,18 @@ define("@scom/scom-image-gallery/model.ts", ["require", "exports"], function (re
         set columnsPerRow(value) {
             this._data.columnsPerRow = value;
         }
+        get data() {
+            return this._data;
+        }
+        set data(value) {
+            this.setData(value);
+        }
+        get tag() {
+            return this.module.tag;
+        }
+        set tag(value) {
+            this.setTag(value);
+        }
         getData() {
             return this._data;
         }
@@ -567,7 +579,6 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
         }
         init() {
             super.init();
-            this.setTag({ width: '100%', height: 'auto' });
             const lazyLoad = this.getAttribute('lazyLoad', true, false);
             if (!lazyLoad) {
                 const images = this.getAttribute('images', true);
@@ -581,6 +592,9 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
                 this.setData(data);
                 if (selectedImage != null)
                     this.selectedImage = selectedImage;
+                const tag = this.getAttribute('tag', true);
+                if (tag)
+                    this.setTag(tag);
             }
         }
         static async create(options, parent) {
@@ -619,6 +633,13 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
                 this.mdImages.onShowModal();
             }
         }
+        get data() {
+            return this.model.data;
+        }
+        set data(value) {
+            console.log('set data', value);
+            this.model.data = value;
+        }
         getConfigurators() {
             this.initModel();
             return this.model.getConfigurators();
@@ -655,7 +676,7 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
                 this.pnlGallery.height = 'auto';
                 if (maxWidth !== undefined) {
                     this.pnlGallery.maxWidth = maxWidth;
-                    if (!width) {
+                    if (width === undefined) {
                         this.pnlGallery.width = maxWidth;
                     }
                 }
@@ -708,6 +729,8 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
             }
         }
         selectImage(index) {
+            if (this.designMode)
+                return;
             this.selectedImage = index;
             const image = this.images[index];
             if (!image?.link) {
@@ -715,6 +738,8 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
             }
         }
         onSlideChange(index) {
+            if (this.designMode)
+                return;
             history.replaceState(null, null, `${this.hash}/photo/${index + 1}`);
         }
         render() {
@@ -727,7 +752,55 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
     };
     ScomImageGallery = __decorate([
         components_3.customModule,
-        (0, components_3.customElements)('i-scom-image-gallery')
+        (0, components_3.customElements)('i-scom-image-gallery', {
+            icon: 'stop',
+            props: {
+                images: {
+                    type: 'array',
+                    default: []
+                },
+                hash: {
+                    type: 'string',
+                    default: ''
+                },
+                columnsPerRow: {
+                    type: 'number'
+                },
+                data: {
+                    type: 'object'
+                }
+            },
+            className: 'ScomImageGallery',
+            events: {},
+            dataSchema: {
+                type: 'object',
+                properties: {
+                    images: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                link: {
+                                    type: 'string',
+                                    required: false
+                                },
+                                url: {
+                                    type: 'string'
+                                }
+                            }
+                        },
+                    },
+                    hash: {
+                        type: 'string',
+                        required: false
+                    },
+                    columnsPerRow: {
+                        type: 'number',
+                        required: false
+                    }
+                }
+            }
+        })
     ], ScomImageGallery);
     exports.default = ScomImageGallery;
 });

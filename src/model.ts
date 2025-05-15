@@ -43,6 +43,22 @@ export class Model {
     this._data.columnsPerRow = value;
   }
 
+  get data() {
+    return this._data;
+  }
+
+  set data(value: IImageGallery) {
+    this.setData(value);
+  }
+
+  get tag() {
+    return this.module.tag;
+  }
+
+  set tag(value: any) {
+    this.setTag(value);
+  }
+
   getData() {
     return this._data;
   }

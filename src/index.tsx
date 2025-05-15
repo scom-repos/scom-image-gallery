@@ -30,7 +30,55 @@ declare global {
 }
 
 @customModule
-@customElements('i-scom-image-gallery')
+@customElements('i-scom-image-gallery', {
+  icon: 'stop',
+  props: {
+    images: {
+      type: 'array',
+      default: []
+    },
+    hash: {
+      type: 'string',
+      default: ''
+    },
+    columnsPerRow: {
+      type: 'number'
+    },
+    data: {
+      type: 'object'
+    }
+  },
+  className: 'ScomImageGallery',
+  events: {},
+  dataSchema: {
+    type: 'object',
+    properties: {
+      images: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            link: {
+              type: 'string',
+              required: false
+            },
+            url: {
+              type: 'string'
+            }
+          }
+        },
+      },
+      hash: {
+        type: 'string',
+        required: false
+      },
+      columnsPerRow: {
+        type: 'number',
+        required: false
+      }
+    }
+  }
+})
 export default class ScomImageGallery extends Module {
   private model: Model;
 
@@ -48,7 +96,6 @@ export default class ScomImageGallery extends Module {
 
   init() {
     super.init()
-    this.setTag({ width: '100%', height: 'auto' })
     const lazyLoad = this.getAttribute('lazyLoad', true, false)
     if (!lazyLoad) {
       const images = this.getAttribute('images', true)
@@ -59,6 +106,8 @@ export default class ScomImageGallery extends Module {
       if (hash) data.hash = hash;
       this.setData(data)
       if (selectedImage != null) this.selectedImage = selectedImage;
+      const tag = this.getAttribute('tag', true)
+      if (tag) this.setTag(tag);
     }
   }
 
@@ -100,6 +149,15 @@ export default class ScomImageGallery extends Module {
       this.mdImages.activeSlide = index;
       this.mdImages.onShowModal();
     }
+  }
+
+  get data() {
+    return this.model.data;
+  }
+
+  set data(value: IImageGallery) {
+    console.log('set data', value);
+    this.model.data = value;
   }
 
   getConfigurators() {
@@ -144,7 +202,7 @@ export default class ScomImageGallery extends Module {
       this.pnlGallery.height = 'auto';
       if (maxWidth !== undefined) {
         this.pnlGallery.maxWidth = maxWidth;
-        if (!width) {
+        if (width === undefined) {
           this.pnlGallery.width = maxWidth;
         }
       }
@@ -215,6 +273,7 @@ export default class ScomImageGallery extends Module {
   }
 
   private selectImage(index: number) {
+    if (this.designMode) return;
     this.selectedImage = index;
     const image = this.images[index];
     if (!image?.link) {
@@ -223,6 +282,7 @@ export default class ScomImageGallery extends Module {
   }
 
   private onSlideChange(index: number) {
+    if (this.designMode) return;
     history.replaceState(null, null, `${this.hash}/photo/${index + 1}`);
   }
 
