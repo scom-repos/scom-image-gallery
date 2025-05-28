@@ -637,7 +637,6 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
             return this.model.data;
         }
         set data(value) {
-            console.log('set data', value);
             this.model.data = value;
         }
         getConfigurators() {
@@ -693,7 +692,7 @@ define("@scom/scom-image-gallery", ["require", "exports", "@ijstech/components",
         }
         renderUI() {
             const { image: imageStyles, gap } = this.tag;
-            this.mdImages.setData({ images: this.images, activeSlide: 0 });
+            this.mdImages?.setData({ images: this.images, activeSlide: 0 });
             this.gridImages.clearInnerHTML();
             const length = this.images.length;
             this.gridImages.columnsPerRow = this.columnsPerRow || (length > 1 ? 2 : 1);

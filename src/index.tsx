@@ -156,7 +156,6 @@ export default class ScomImageGallery extends Module {
   }
 
   set data(value: IImageGallery) {
-    console.log('set data', value);
     this.model.data = value;
   }
 
@@ -221,7 +220,7 @@ export default class ScomImageGallery extends Module {
 
   private renderUI() {
     const {image: imageStyles, gap} = this.tag;
-    this.mdImages.setData({ images: this.images, activeSlide: 0 });
+    this.mdImages?.setData({ images: this.images, activeSlide: 0 });
     this.gridImages.clearInnerHTML();
     const length = this.images.length;
     this.gridImages.columnsPerRow = this.columnsPerRow || (length > 1 ? 2 : 1);
